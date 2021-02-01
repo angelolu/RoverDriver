@@ -4,7 +4,6 @@ import { Connect, StatusGoodSmall, Trigger, Wifi, Info, Gamepad, DocumentTest, C
 import Rover from './Rover'
 import { RoverTheme } from './theme'
 import './App.css';
-import { breakpointStyle } from 'grommet/es6/utils/mixins'
 
 
 class App extends React.Component {
@@ -68,7 +67,7 @@ class App extends React.Component {
   }
 
   disconnectRover() {
-    if (this.state.connected == true) {
+    if (this.state.connected === true) {
       this.state.rover.disconnect();
     }
     this.setState({ ...this.state, connected: false, roverState: {} });
@@ -108,7 +107,7 @@ class App extends React.Component {
       <Grommet full theme={RoverTheme}>
         <Box fill="vertical" overflow="auto" align="center" flex="grow">
           <Header className="appHeader" align="end" justify="center" gap="medium" background={{ "color": "background-contrast" }} fill="horizontal">
-            <Box align="center" justify="between" direction="row" flex="grow" pad="medium">
+            <Box className="appHeaderBox" align="center" direction="row" flex="grow" pad="medium">
               <Box align="start" justify="center" direction="column" gap="small">
                 <Heading level="2" margin="none" textAlign="start">
                   {this.state.connected ? "Connected" : "Not Connected"}
@@ -128,11 +127,11 @@ class App extends React.Component {
               </Box>
             </Box>
           </Header>
-          <Box align="center" justify="start" fill="vertical">
+          <Box className="box_Content">
             <Tabs justify="center" margin="small" flex>
               <Tab title="Status" icon={<Info />}>
-                <Box justify="center" margin={{ "top": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
-                  <Card className="card" elevation="0" width={{ "min": "400px" }} margin="small" pad="xsmall" background={{ "color": "background-front" }}>
+                <Box justify="center" className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
+                  <Card className="card card-basic" elevation="0" width={{ "min": "300px", "max":"400px" }} margin="small" pad="xsmall" background={{ "color": "background-front" }}>
                     <CardHeader align="center" direction="row" justify="between" gap="medium" pad="small">
                       <Heading level="3" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
                         System
@@ -163,20 +162,21 @@ class App extends React.Component {
                       </Box>
                     </CardBody>
                   </Card>
-                  <Card className="card" elevation="0" width={{ "min": "400px" }} margin="small" pad="xsmall" background={{ "color": "background-front" }}>
+                  <Card className="card card-wide" elevation="0" width={{ "min": "300px", "max":"600px" }} margin="small" pad="xsmall" background={{ "color": "background-front" }}>
                     <CardHeader align="center" direction="row" justify="between" gap="medium" pad="small">
                       <Heading level="3" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
                         Acceleration
                     </Heading>
                     </CardHeader>
-                    <CardBody pad="small">
-                      <Box align="start" justify="center" gap="xxsmall">
+                    <CardBody pad="small" >
+                      <Box align="center" justify="center" gap="xxsmall">
 
                         <Heading level="4" margin="none">
                           X: 0, Y: 0, Z: 0
                         </Heading>
+                      
+                      <DataChart axis={{ "x": { "granularity": "fine" }, "y": { "granularity": "fine" } }} chart={[{ "property": "X", "type": "line", "thickness": "xsmall", "dash": false, "round": false, "color": "accent-4" }, { "property": "Y", "type": "line", "color": "accent-3", "thickness": "xsmall", "round": false }, { "property": "Z", "type": "line", "color": "accent-2", "thickness": "xsmall", "round": false }]} data={[{ "date": "2020-01-15", "X": 22, "Y": 27, "Z": 60 }, { "date": "2020-02-15", "X": 11, "Y": 25, "Z": 50 }, { "date": "2020-03-15", "X": 33, "Y": 5, "Z": 52 }, { "date": "2020-04-15", "X": 77, "Y": 16, "Z": 48 }, { "date": "2020-05-15", "X": 88, "Y": 28, "Z": 42 }]} guide={{ "x": { "granularity": "coarse" }, "y": { "granularity": "coarse" } }} series={[{ "property": "date", "label": "Time" }, { "property": "X", "label": "X" }, { "property": "Y", "label": "Y" }, { "property": "Z", "label": "Z" }]} size={{ "width": "medium", "height": "small" }} detail={false} legend />
                       </Box>
-                      <DataChart axis={{ "x": { "granularity": "fine" }, "y": { "granularity": "fine" } }} chart={[{ "property": "X", "type": "line", "thickness": "xsmall", "dash": false, "round": false, "color": "accent-4" }, { "property": "Y", "type": "line", "color": "accent-3", "thickness": "xsmall", "round": false }, { "property": "Z", "type": "line", "color": "accent-2", "thickness": "xsmall", "round": false }]} data={[{ "date": "2020-01-15", "X": 22, "Y": 27, "Z": 60 }, { "date": "2020-02-15", "X": 11, "Y": 25, "Z": 50 }, { "date": "2020-03-15", "X": 33, "Y": 5, "Z": 52 }, { "date": "2020-04-15", "X": 77, "Y": 16, "Z": 48 }, { "date": "2020-05-15", "X": 88, "Y": 28, "Z": 42 }]} guide={{ "x": { "granularity": "coarse" }, "y": { "granularity": "coarse" } }} series={[{ "property": "date", "label": "Time" }, { "property": "X", "label": "X" }, { "property": "Y", "label": "Y" }, { "property": "Z", "label": "Z" }]} size={{ "width": "fill", "height": "small" }} detail={false} legend />
                     </CardBody>
                   </Card>
                 </Box>

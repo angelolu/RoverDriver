@@ -3,8 +3,33 @@
   align-items: flex-start;
 }
 
-.card{
-  min-width: 400px;
+/* Extra small devices (phones, 600px and down) */
+@media only screen and (max-width: 750px) {
+
+}
+
+/* Small devices (portrait tablets and large phones, 600px and up) */
+@media only screen and (min-width: 750px) {
+  .box_Content{
+    width: 70%;
+    align-items: stretch;
+  }
+}
+
+
+.card-basic{
+  flex-grow: 1;
+  max-width: 400px;
+}
+
+.card-wide{
+  flex-grow: 2;
+  max-width: 500px;
+}
+
+.appHeaderBox{
+  flex-wrap: wrap;
+  justify-content: space-around;
 }
 
 .appHeaderImage {
