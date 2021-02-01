@@ -1,38 +1,25 @@
-.App {
-  text-align: center;
+.tabContents{
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.card{
+  min-width: 400px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
+.appHeaderImage {
+  /* The image used */
+  background-image: url("moon.png");
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
+  /* Add the blur effect */
+  filter: blur(8px);
+  -webkit-filter: blur(8px);
 
-.App-link {
-  color: #61dafb;
-}
+  /* Full height */
+  height: 100%;
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  /* Center and scale the image nicely */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
 }
