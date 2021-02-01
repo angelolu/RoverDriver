@@ -10,7 +10,7 @@ export const RoverTheme = {
           "light": "#FFB63A"
         },
         "background": {
-          "light": "#FFFFFF",
+          "light": "#EEEEEE",
           "dark": "#212429"
         },
         "background-back": {
@@ -23,7 +23,7 @@ export const RoverTheme = {
         },
         "background-contrast": {
           "dark": "#FFFFFF11",
-          "light": "#11111111"
+          "light": "#11111120"
         },
         "text": {
           "dark": "#EEEEEE",

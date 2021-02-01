@@ -1,5 +1,5 @@
 import React from 'react'
-import { Grommet, Box, Header, Heading, Button, Tabs, Tab, Card, CardHeader, CardBody, DataChart } from 'grommet'
+import { Grommet, Box, Header, Heading, Button, Tabs, Tab, Card, CardHeader, CardBody, DataChart, Stack, Diagram, CardFooter } from 'grommet'
 import { Connect, StatusGoodSmall, Trigger, Wifi, Info, Gamepad, DocumentTest, Configure, Close } from 'grommet-icons'
 import Rover from './Rover'
 import { RoverTheme } from './theme'
@@ -107,21 +107,21 @@ class App extends React.Component {
       <Grommet full theme={RoverTheme}>
         <Box fill="vertical" overflow="auto" align="center" flex="grow">
           <Header className="appHeader" align="end" justify="center" gap="medium" background={{ "color": "background-contrast" }} fill="horizontal">
-            <Box className="appHeaderBox" align="center" direction="row" flex="grow" pad="medium">
-              <Box align="start" justify="center" direction="column" gap="small">
+            <Box className="appHeaderBox" align="center" direction="row" flex="grow" justify="around" wrap="reverse">
+              <Box align="center" justify="center" direction="column" pad="medium" gap="small">
                 <Heading level="2" margin="none" textAlign="start">
                   {this.state.connected ? "Connected" : "Not Connected"}
                 </Heading>
                 {this.state.connected ? <Button label="Disconnect" onClick={this.handleDisconnectClick} icon={<Close />} disabled={false} primary /> : <Button label="Connect" onClick={this.handleConnectClick} icon={<Connect />} disabled={false} primary />}
               </Box>
-              <Box align="center" justify="center" direction="row" gap="medium">
+              <Box justify="center" direction="row" pad="medium" gap="medium">
                 <Box align="end" justify="center" direction="column">
                   <Heading level="3" margin="none" textAlign="start">
                     {this.state.connected ? this.state.rover.getDevice().name : "-"}
                   </Heading>
                   <Heading level="4" margin="none" textAlign="start">
                     {statusMessage}
-                </Heading>
+                  </Heading>
                 </Box>
                 <StatusGoodSmall color={statusColor} size="large" />
               </Box>
@@ -131,7 +131,7 @@ class App extends React.Component {
             <Tabs justify="center" margin="small" flex>
               <Tab title="Status" icon={<Info />}>
                 <Box justify="center" className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
-                  <Card className="card card-basic" elevation="0" width={{ "min": "300px", "max":"400px" }} margin="small" pad="xsmall" background={{ "color": "background-front" }}>
+                  <Card className="card card-basic" elevation="0" width={{ "min": "300px", "max": "400px" }} margin="small" pad="xsmall" background={{ "color": "background-front" }}>
                     <CardHeader align="center" direction="row" justify="between" gap="medium" pad="small">
                       <Heading level="3" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
                         System
@@ -145,7 +145,7 @@ class App extends React.Component {
                             Battery
                         </Heading>
                           <Heading level="3" margin="none">
-                          {this.state.connected ? this.state.roverState.voltage : "-"} V
+                            {this.state.connected ? this.state.roverState.voltage : "-"} V
                         </Heading>
                         </Box>
                       </Box>
@@ -162,7 +162,7 @@ class App extends React.Component {
                       </Box>
                     </CardBody>
                   </Card>
-                  <Card className="card card-wide" elevation="0" width={{ "min": "300px", "max":"600px" }} margin="small" pad="xsmall" background={{ "color": "background-front" }}>
+                  <Card className="card card-wide" elevation="0" width={{ "min": "300px", "max": "600px" }} margin="small" pad="xsmall" background={{ "color": "background-front" }}>
                     <CardHeader align="center" direction="row" justify="between" gap="medium" pad="small">
                       <Heading level="3" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
                         Acceleration
@@ -174,14 +174,80 @@ class App extends React.Component {
                         <Heading level="4" margin="none">
                           X: 0, Y: 0, Z: 0
                         </Heading>
-                      
-                      <DataChart axis={{ "x": { "granularity": "fine" }, "y": { "granularity": "fine" } }} chart={[{ "property": "X", "type": "line", "thickness": "xsmall", "dash": false, "round": false, "color": "accent-4" }, { "property": "Y", "type": "line", "color": "accent-3", "thickness": "xsmall", "round": false }, { "property": "Z", "type": "line", "color": "accent-2", "thickness": "xsmall", "round": false }]} data={[{ "date": "2020-01-15", "X": 22, "Y": 27, "Z": 60 }, { "date": "2020-02-15", "X": 11, "Y": 25, "Z": 50 }, { "date": "2020-03-15", "X": 33, "Y": 5, "Z": 52 }, { "date": "2020-04-15", "X": 77, "Y": 16, "Z": 48 }, { "date": "2020-05-15", "X": 88, "Y": 28, "Z": 42 }]} guide={{ "x": { "granularity": "coarse" }, "y": { "granularity": "coarse" } }} series={[{ "property": "date", "label": "Time" }, { "property": "X", "label": "X" }, { "property": "Y", "label": "Y" }, { "property": "Z", "label": "Z" }]} size={{ "width": "medium", "height": "small" }} detail={false} legend />
+
+                        <DataChart axis={{ "x": { "granularity": "fine" }, "y": { "granularity": "fine" } }} chart={[{ "property": "X", "type": "line", "thickness": "xsmall", "dash": false, "round": false, "color": "accent-4" }, { "property": "Y", "type": "line", "color": "accent-3", "thickness": "xsmall", "round": false }, { "property": "Z", "type": "line", "color": "accent-2", "thickness": "xsmall", "round": false }]} data={[{ "date": "2020-01-15", "X": 22, "Y": 27, "Z": 60 }, { "date": "2020-02-15", "X": 11, "Y": 25, "Z": 50 }, { "date": "2020-03-15", "X": 33, "Y": 5, "Z": 52 }, { "date": "2020-04-15", "X": 77, "Y": 16, "Z": 48 }, { "date": "2020-05-15", "X": 88, "Y": 28, "Z": 42 }]} guide={{ "x": { "granularity": "coarse" }, "y": { "granularity": "coarse" } }} series={[{ "property": "date", "label": "Time" }, { "property": "X", "label": "X" }, { "property": "Y", "label": "Y" }, { "property": "Z", "label": "Z" }]} size={{ "width": "medium", "height": "small" }} detail={false} legend />
                       </Box>
                     </CardBody>
                   </Card>
                 </Box>
               </Tab>
-              <Tab title="Drive" icon={<Gamepad />} />
+              <Tab title="Drive" icon={<Gamepad />} >
+                <Box justify="center" className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
+                  <Card className="card card-basic" elevation="0" width={{ "min": "300px", "max": "400px" }} margin="small" background={{ "color": "background-front" }}>
+                    <CardBody pad="small">
+                      <Box align="center" justify="center" direction="row" margin={{ "bottom": "small" }}>
+                        <Box align="end" justify="center">
+                          <Stack guidingChild={1}>
+                            <Diagram
+                              connections={[
+                                {
+                                  fromTarget: '1',
+                                  toTarget: '0',
+                                  thickness: 'xsmall',
+                                  color: 'accent-1',
+                                  type: 'curved',
+                                },
+                                {
+                                  fromTarget: '2',
+                                  toTarget: '0',
+                                  thickness: 'xsmall',
+                                  color: 'accent-1',
+                                  type: 'curved',
+                                },
+                                {
+                                  fromTarget: '3',
+                                  toTarget: '0',
+                                  thickness: 'xsmall',
+                                  color: 'accent-1',
+                                  type: 'curved',
+                                },
+                                {
+                                  fromTarget: '4',
+                                  toTarget: '0',
+                                  thickness: 'xsmall',
+                                  color: 'accent-1',
+                                  type: 'curved',
+                                }
+                              ]}
+                            />
+                            <Box>
+                              <Box direction="row">
+                                <Box id="1" margin="small" pad="medium" background="status-ok" />
+                                <Box id="5" margin="small" pad="medium" background="none" />
+                                <Box id="2" margin="small" pad="medium" background="status-ok" />
+                              </Box>
+                              <Box direction="row" justify="center">
+                                <Box id="0" margin="small" pad="medium" background="#313131"><Trigger size="medium" color={'brand'} /></Box>
+                              </Box>
+                              <Box direction="row">
+                                <Box id="3" margin="small" pad="medium" background="status-ok" />
+                                <Box id="8" margin="small" pad="medium" background="none" />
+                                <Box id="4" margin="small" pad="medium" background="status-ok" />
+                              </Box>
+                            </Box>
+                          </Stack>
+                        </Box>
+                      </Box>
+
+                    </CardBody>
+                    <CardFooter align="center" direction="row" justify="center" background='background-contrast' gap="medium" pad="small">
+                      <Heading level="4" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
+                        motor controller voltage nominal
+                    </Heading>
+                    </CardFooter>
+                  </Card>
+                </Box>
+              </Tab>
               <Tab title="Collect Data" icon={<DocumentTest />} />
               <Tab title="Settings" plain={false} disabled={false} icon={<Configure />} />
             </Tabs>

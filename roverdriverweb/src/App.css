@@ -27,11 +27,6 @@
   max-width: 500px;
 }
 
-.appHeaderBox{
-  flex-wrap: wrap;
-  justify-content: space-around;
-}
-
 .appHeaderImage {
   /* The image used */
   background-image: url("moon.png");
