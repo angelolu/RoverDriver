@@ -5,7 +5,7 @@ class Rover {
       this.onDisconnected = this.onDisconnected.bind(this);
     }
     
-    request(disconnectHandler) {
+    request() {
       let options = {
         "filters": [{
           "namePrefix": "rover-",

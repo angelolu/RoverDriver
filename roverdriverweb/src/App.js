@@ -1,8 +1,9 @@
 import React from 'react'
-import { Grommet, Box, Header, Heading, Button, Tabs, Tab, Card, CardHeader, CardBody, DataChart, Stack, Diagram, CardFooter } from 'grommet'
+import { Grommet, Box, Header, Heading, Button, Tabs, Tab, Card, CardHeader, CardBody, Stack, Diagram, CardFooter } from 'grommet'
 import { Connect, StatusGoodSmall, Trigger, Wifi, Info, Gamepad, DocumentTest, Configure, Close } from 'grommet-icons'
 import Rover from './Rover'
 import { RoverTheme } from './theme'
+import { StateBox, MovingGraph } from './CommonUI'
 import './App.css';
 
 
@@ -13,19 +14,19 @@ class App extends React.Component {
     this.state = {
       rover: null,
       connected: false,
-      roverState: {}
+      roverState: {},
+      roverIMU: {}
     };
     this.handleConnectClick = this.handleConnectClick.bind(this);
     this.handleDisconnectClick = this.handleDisconnectClick.bind(this);
+    this.handleSimulate = this.handleSimulate.bind(this);
   }
 
   componentDidMount() {
     this.setState({ ...this.state, rover: new Rover() });
-    console.log("Mounted");
   }
 
   componentWillUnmount() {
-    console.log("Unmounting");
     this.disconnectRover()
   }
 
@@ -36,7 +37,7 @@ class App extends React.Component {
       .then((bluetoothRemoteGATTServer) => { /* Do something with rover... */
         console.log(this.state.rover.getDevice());
         this.state.rover.getDevice().addEventListener('gattserverdisconnected', _ => {
-          this.setState({ ...this.state, connected: false, roverState: {} });
+          this.setState({ ...this.state, connected: false, roverState: {}, roverIMU: {} });
         });
         this.state.rover.startTxNotifications((event) => {
           this.handleUARTTX(event)
@@ -49,8 +50,35 @@ class App extends React.Component {
       });
   }
 
+  trimMovingData(workingData) {
+    if (workingData.length > 10) {
+      workingData = workingData.slice(workingData.length - 10);
+    }
+    return workingData;
+  }
+
+  handleSimulate(e) {
+    // Helper for whatever I'm working on
+    let value = "12.5;13.5;5.3".split(";")
+    if (value.length === 3) {
+      let currentTime = new Date().toLocaleTimeString();
+      let workingData;
+      if (this.state.roverIMU.accel !== undefined) {
+        workingData = [...this.state.roverIMU.accel, { "time": currentTime, "X": parseFloat(value[0]), "Y": parseFloat(value[1]), "Z": parseFloat(value[2]) }];
+        // Remove extra values
+        workingData = this.trimMovingData(workingData);
+      } else {
+        workingData = Array(10).fill({ "time": currentTime, "X": parseFloat(value[0]), "Y": parseFloat(value[1]), "Z": parseFloat(value[2]) });
+      }
+      // Save data back to state
+      this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, accel: workingData } });
+    }
+  }
+
   handleUARTTX(event) {
     let message = new Uint8Array(event.target.value.buffer);
+    //console.log(">" + String.fromCharCode.apply(null, message));
+
     if (message.length > 1) {
       switch (message[0]) {
         case 0xA1:
@@ -58,7 +86,50 @@ class App extends React.Component {
           this.setState({ ...this.state, roverState: { ...this.state.roverState, status: message[1] } });
           break;
         case 0xA2:
+          // Voltage
           this.setState({ ...this.state, roverState: { ...this.state.roverState, voltage: String.fromCharCode.apply(null, message.slice(1)) } });
+          break;
+        case 0xB1:
+          // Accelerometer
+          // Parse value
+          let accelValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
+          if (accelValue.length === 3) {
+            let currentTime = new Date().toLocaleTimeString();
+            let workingData;
+            if (this.state.roverIMU.accel !== undefined) {
+              workingData = [...this.state.roverIMU.accel, { "time": currentTime, "X": parseFloat(accelValue[0]), "Y": parseFloat(accelValue[1]), "Z": parseFloat(accelValue[2]) }];
+              // Remove extra values
+              workingData = this.trimMovingData(workingData);
+            } else {
+              workingData = Array(9).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
+              workingData = [...workingData, { "time": currentTime, "X": parseFloat(accelValue[0]), "Y": parseFloat(accelValue[1]), "Z": parseFloat(accelValue[2]) }];
+            }
+            // Save data back to state
+            this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, accel: workingData } });
+          } else {
+            console.log("Invalid number of accel coordinates recieved");
+          }
+          break;
+        case 0xB2:
+          // Gyroscope
+          // Parse value
+          let gyroValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
+          if (gyroValue.length === 3) {
+            let currentTime = new Date().toLocaleTimeString();
+            let workingData;
+            if (this.state.roverIMU.gyro !== undefined) {
+              workingData = [...this.state.roverIMU.gyro, { "time": currentTime, "X": parseFloat(gyroValue[0]), "Y": parseFloat(gyroValue[1]), "Z": parseFloat(gyroValue[2]) }];
+              // Remove extra values
+              workingData = this.trimMovingData(workingData);
+            } else {
+              workingData = Array(9).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
+              workingData = [...workingData, { "time": currentTime, "X": parseFloat(gyroValue[0]), "Y": parseFloat(gyroValue[1]), "Z": parseFloat(gyroValue[2]) }];
+            }
+            // Save data back to state
+            this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, gyro: workingData } });
+          } else {
+            console.log("Invalid number of gyro coordinates recieved");
+          }
           break;
         default:
           console.log("Unknown Message: " + String.fromCharCode.apply(null, message));
@@ -70,35 +141,31 @@ class App extends React.Component {
     if (this.state.connected === true) {
       this.state.rover.disconnect();
     }
-    this.setState({ ...this.state, connected: false, roverState: {} });
+    this.setState({ ...this.state, connected: false, roverState: {}, roverIMU: {} });
   }
 
   handleDisconnectClick(e) {
     e.preventDefault();
     this.state.rover.disconnect();
-    this.setState({ ...this.state, connected: false, roverState: {} });
+    this.setState({ ...this.state, connected: false, roverState: {}, roverIMU: {} });
   }
   render() {
     let statusColor = "status-unknown";
     let statusMessage = "UNKNOWN";
     switch (this.state.roverState.status) {
       case 0:
-        console.log("OK");
         statusColor = "status-ok";
         statusMessage = "IDLE - SAFE TO APPROACH";
         break;
       case 1:
-        console.log("WARNING");
         statusColor = "status-warning";
         statusMessage = "READY - STAND CLEAR";
         break;
       case 2:
-        console.log("CRITICAL");
         statusColor = "status-critical";
         statusMessage = "MOTORS POWERED - DO NOT APPROACH";
         break;
       default:
-        console.log("None");
         statusColor = "status-unknown";
         statusMessage = "UNKNOWN";
         break;
@@ -131,53 +198,58 @@ class App extends React.Component {
             <Tabs justify="center" margin="small" flex>
               <Tab title="Status" icon={<Info />}>
                 <Box justify="center" className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
-                  <Card className="card card-basic" elevation="0" width={{ "min": "300px", "max": "400px" }} margin="small" pad="xsmall" background={{ "color": "background-front" }}>
-                    <CardHeader align="center" direction="row" justify="between" gap="medium" pad="small">
+                  <Card className="card card-basic" elevation="0" width={{ "min": "300px", "max": "400px" }} margin="small" background={{ "color": "background-front" }}>
+                    <CardHeader align="center" direction="row" justify="between" gap="medium" pad="medium">
                       <Heading level="3" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
                         System
                     </Heading>
                     </CardHeader>
-                    <CardBody pad="small">
-                      <Box align="center" justify="between" direction="row" margin={{ "bottom": "small" }}>
-                        <Trigger size="large" />
-                        <Box align="end" justify="center">
-                          <Heading level="4" margin="none">
-                            Battery
-                        </Heading>
-                          <Heading level="3" margin="none">
-                            {this.state.connected ? this.state.roverState.voltage : "-"} V
-                        </Heading>
-                        </Box>
-                      </Box>
-                      <Box align="center" justify="between" direction="row" margin={{ "bottom": "small" }}>
-                        <Wifi size="large" />
-                        <Box align="end" justify="center">
-                          <Heading level="4" margin="none" textAlign="end">
-                            Signal
-                        </Heading>
-                          <Heading level="3" margin="none">
-                            Medium
-                        </Heading>
-                        </Box>
-                      </Box>
+                    <CardBody pad="medium">
+                      <StateBox icon={<Trigger size="large" />} name="Battery" unit="V" value={this.state.roverState.voltage ? this.state.roverState.voltage : "-"} />
+                      <StateBox icon={<Wifi size="large" />} name="Signal" value={this.state.connected ? "Medium" : "-"} />
                     </CardBody>
                   </Card>
-                  <Card className="card card-wide" elevation="0" width={{ "min": "300px", "max": "600px" }} margin="small" pad="xsmall" background={{ "color": "background-front" }}>
-                    <CardHeader align="center" direction="row" justify="between" gap="medium" pad="small">
+                  <Card className="card card-wide" elevation="0" width={{ "min": "300px", "max": "500px" }} margin="small" background={{ "color": "background-front" }}>
+                    <CardHeader align="center" direction="row" justify="between" gap="medium" pad="medium">
                       <Heading level="3" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
                         Acceleration
                     </Heading>
                     </CardHeader>
-                    <CardBody pad="small" >
-                      <Box align="center" justify="center" gap="xxsmall">
-
-                        <Heading level="4" margin="none">
-                          X: 0, Y: 0, Z: 0
-                        </Heading>
-
-                        <DataChart axis={{ "x": { "granularity": "fine" }, "y": { "granularity": "fine" } }} chart={[{ "property": "X", "type": "line", "thickness": "xsmall", "dash": false, "round": false, "color": "accent-4" }, { "property": "Y", "type": "line", "color": "accent-3", "thickness": "xsmall", "round": false }, { "property": "Z", "type": "line", "color": "accent-2", "thickness": "xsmall", "round": false }]} data={[{ "date": "2020-01-15", "X": 22, "Y": 27, "Z": 60 }, { "date": "2020-02-15", "X": 11, "Y": 25, "Z": 50 }, { "date": "2020-03-15", "X": 33, "Y": 5, "Z": 52 }, { "date": "2020-04-15", "X": 77, "Y": 16, "Z": 48 }, { "date": "2020-05-15", "X": 88, "Y": 28, "Z": 42 }]} guide={{ "x": { "granularity": "coarse" }, "y": { "granularity": "coarse" } }} series={[{ "property": "date", "label": "Time" }, { "property": "X", "label": "X" }, { "property": "Y", "label": "Y" }, { "property": "Z", "label": "Z" }]} size={{ "width": "medium", "height": "small" }} detail={false} legend />
-                      </Box>
-                    </CardBody>
+                    {this.state.roverIMU.accel ? (<>
+                      <CardBody pad="medium" >
+                        <Box align="center" justify="center">
+                          <Heading onClick={this.handleSimulate} level="4" margin="none">
+                            X: {this.state.roverIMU.accel[this.state.roverIMU.accel.length - 1]["X"]}, Y: {this.state.roverIMU.accel[this.state.roverIMU.accel.length - 1]["Y"]}, Z: {this.state.roverIMU.accel[this.state.roverIMU.accel.length - 1]["Z"]}
+                          </Heading>
+                          <MovingGraph data={this.state.roverIMU.accel} />
+                        </Box>
+                      </CardBody>
+                    </>) : (<CardFooter align="center" direction="row" justify="center" background='background-contrast' gap="medium" pad="small">
+                      <Heading level="4" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
+                        waiting for data
+                          </Heading>
+                    </CardFooter>)}
+                  </Card>
+                  <Card className="card card-wide" elevation="0" width={{ "min": "300px", "max": "500px" }} margin="small" background={{ "color": "background-front" }}>
+                    <CardHeader align="center" direction="row" justify="between" gap="medium" pad="medium">
+                      <Heading level="3" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
+                        Angular velocity
+                    </Heading>
+                    </CardHeader>
+                    {this.state.roverIMU.gyro ? (<>
+                      <CardBody pad="medium" >
+                        <Box align="center" justify="center">
+                          <Heading onClick={this.handleSimulate} level="4" margin="none">
+                            X: {this.state.roverIMU.gyro[this.state.roverIMU.gyro.length - 1]["X"]}, Y: {this.state.roverIMU.gyro[this.state.roverIMU.gyro.length - 1]["Y"]}, Z: {this.state.roverIMU.gyro[this.state.roverIMU.gyro.length - 1]["Z"]}
+                          </Heading>
+                          <MovingGraph data={this.state.roverIMU.gyro} />
+                        </Box>
+                      </CardBody>
+                    </>) : (<CardFooter align="center" direction="row" justify="center" background='background-contrast' gap="medium" pad="small">
+                      <Heading level="4" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
+                        waiting for data
+                          </Heading>
+                    </CardFooter>)}
                   </Card>
                 </Box>
               </Tab>
@@ -249,7 +321,17 @@ class App extends React.Component {
                 </Box>
               </Tab>
               <Tab title="Collect Data" icon={<DocumentTest />} />
-              <Tab title="Settings" plain={false} disabled={false} icon={<Configure />} />
+              <Tab title="Settings" plain={false} disabled={false} icon={<Configure />}>
+                <Box justify="center" className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
+                  <Card className="card card-wide" elevation="0" width={{ "min": "300px", "max": "600px" }} margin="small" background={{ "color": "background-front" }}>
+                    <CardBody pad="small">
+                      <Box align="center" justify="center" direction="row" margin={{ "bottom": "small" }}>
+                        Nothing here yet.
+                      </Box>
+                    </CardBody>
+                  </Card>
+                </Box>
+              </Tab>
             </Tabs>
           </Box>
         </Box>
