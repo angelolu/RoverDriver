@@ -1,9 +1,9 @@
 import React from 'react'
-import { Grommet, Box, Header, Heading, Button, Tabs, Tab, Card, CardHeader, CardBody, Stack, Diagram, CardFooter } from 'grommet'
+import { Grommet, Box, Header, Heading, Button, Tabs, Tab, Stack, Diagram, ResponsiveContext } from 'grommet'
 import { Connect, StatusGoodSmall, Trigger, Wifi, Info, Gamepad, DocumentTest, Configure, Close } from 'grommet-icons'
 import Rover from './Rover'
 import { RoverTheme } from './theme'
-import { StateBox, MovingGraph } from './CommonUI'
+import { StateBox, MovingGraph, StyledCard } from './CommonUI'
 import './App.css';
 
 
@@ -131,6 +131,27 @@ class App extends React.Component {
             console.log("Invalid number of gyro coordinates recieved");
           }
           break;
+        case 0xB3:
+          // Magnetometer 
+          // Parse value
+          let fieldValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
+          if (fieldValue.length === 3) {
+            let currentTime = new Date().toLocaleTimeString();
+            let workingData;
+            if (this.state.roverIMU.field !== undefined) {
+              workingData = [...this.state.roverIMU.field, { "time": currentTime, "X": parseFloat(fieldValue[0]), "Y": parseFloat(fieldValue[1]), "Z": parseFloat(fieldValue[2]) }];
+              // Remove extra values
+              workingData = this.trimMovingData(workingData);
+            } else {
+              workingData = Array(9).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
+              workingData = [...workingData, { "time": currentTime, "X": parseFloat(fieldValue[0]), "Y": parseFloat(fieldValue[1]), "Z": parseFloat(fieldValue[2]) }];
+            }
+            // Save data back to state
+            this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, field: workingData } });
+          } else {
+            console.log("Invalid number of field coordinates recieved");
+          }
+          break;
         default:
           console.log("Unknown Message: " + String.fromCharCode.apply(null, message));
       }
@@ -176,9 +197,13 @@ class App extends React.Component {
           <Header className="appHeader" align="end" justify="center" gap="medium" background={{ "color": "background-contrast" }} fill="horizontal">
             <Box className="appHeaderBox" align="center" direction="row" flex="grow" justify="around" wrap="reverse">
               <Box align="center" justify="center" direction="column" pad="medium" gap="small">
-                <Heading level="2" margin="none" textAlign="start">
-                  {this.state.connected ? "Connected" : "Not Connected"}
-                </Heading>
+                <ResponsiveContext.Consumer>
+                  {size => (size !== "small" && size !== "xsmall" &&
+                    <Heading level="2" margin="none" textAlign="start">
+                      {this.state.connected ? "Connected" : "Not Connected"}
+                    </Heading>
+                  )}
+                </ResponsiveContext.Consumer>
                 {this.state.connected ? <Button label="Disconnect" onClick={this.handleDisconnectClick} icon={<Close />} disabled={false} primary /> : <Button label="Connect" onClick={this.handleConnectClick} icon={<Connect />} disabled={false} primary />}
               </Box>
               <Box justify="center" direction="row" pad="medium" gap="medium">
@@ -195,141 +220,98 @@ class App extends React.Component {
             </Box>
           </Header>
           <Box className="box_Content">
-            <Tabs justify="center" margin="small" flex>
+            <Tabs justify="center" margin={{ "top": "none", "bottom": "medium", "left": "small", "right": "small" }} flex>
               <Tab title="Status" icon={<Info />}>
                 <Box justify="center" className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
-                  <Card className="card card-basic" elevation="0" width={{ "min": "300px", "max": "400px" }} margin="small" background={{ "color": "background-front" }}>
-                    <CardHeader align="center" direction="row" justify="between" gap="medium" pad="medium">
-                      <Heading level="3" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
-                        System
-                    </Heading>
-                    </CardHeader>
-                    <CardBody pad="medium">
-                      <StateBox icon={<Trigger size="large" />} name="Battery" unit="V" value={this.state.roverState.voltage ? this.state.roverState.voltage : "-"} />
-                      <StateBox icon={<Wifi size="large" />} name="Signal" value={this.state.connected ? "Medium" : "-"} />
-                    </CardBody>
-                  </Card>
-                  <Card className="card card-wide" elevation="0" width={{ "min": "300px", "max": "500px" }} margin="small" background={{ "color": "background-front" }}>
-                    <CardHeader align="center" direction="row" justify="between" gap="medium" pad="medium">
-                      <Heading level="3" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
-                        Acceleration
-                    </Heading>
-                    </CardHeader>
-                    {this.state.roverIMU.accel ? (<>
-                      <CardBody pad="medium" >
-                        <Box align="center" justify="center">
-                          <Heading onClick={this.handleSimulate} level="4" margin="none">
-                            X: {this.state.roverIMU.accel[this.state.roverIMU.accel.length - 1]["X"]}, Y: {this.state.roverIMU.accel[this.state.roverIMU.accel.length - 1]["Y"]}, Z: {this.state.roverIMU.accel[this.state.roverIMU.accel.length - 1]["Z"]}
-                          </Heading>
-                          <MovingGraph data={this.state.roverIMU.accel} />
-                        </Box>
-                      </CardBody>
-                    </>) : (<CardFooter align="center" direction="row" justify="center" background='background-contrast' gap="medium" pad="small">
-                      <Heading level="4" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
-                        waiting for data
-                          </Heading>
-                    </CardFooter>)}
-                  </Card>
-                  <Card className="card card-wide" elevation="0" width={{ "min": "300px", "max": "500px" }} margin="small" background={{ "color": "background-front" }}>
-                    <CardHeader align="center" direction="row" justify="between" gap="medium" pad="medium">
-                      <Heading level="3" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
-                        Angular velocity
-                    </Heading>
-                    </CardHeader>
-                    {this.state.roverIMU.gyro ? (<>
-                      <CardBody pad="medium" >
-                        <Box align="center" justify="center">
-                          <Heading onClick={this.handleSimulate} level="4" margin="none">
-                            X: {this.state.roverIMU.gyro[this.state.roverIMU.gyro.length - 1]["X"]}, Y: {this.state.roverIMU.gyro[this.state.roverIMU.gyro.length - 1]["Y"]}, Z: {this.state.roverIMU.gyro[this.state.roverIMU.gyro.length - 1]["Z"]}
-                          </Heading>
-                          <MovingGraph data={this.state.roverIMU.gyro} />
-                        </Box>
-                      </CardBody>
-                    </>) : (<CardFooter align="center" direction="row" justify="center" background='background-contrast' gap="medium" pad="small">
-                      <Heading level="4" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
-                        waiting for data
-                          </Heading>
-                    </CardFooter>)}
-                  </Card>
+                  <StyledCard title="System" >
+                    <StateBox icon={<Trigger size="medium" />} name="Battery" unit="V" value={this.state.roverState.voltage ? this.state.roverState.voltage : "-"} />
+                    <StateBox icon={<Wifi size="medium" />} name="Signal Strength" value={this.state.connected ? "Medium" : "-"} />
+                  </StyledCard>
+                  <StyledCard wide title="Acceleration" foottext={!(this.state.roverIMU.accel) && "waiting for data"}>
+                    {this.state.roverIMU.gyro && (<>
+                      <Box align="center" justify="center">
+                        <MovingGraph data={this.state.roverIMU.accel} unit="m/s2" />
+                      </Box>
+                    </>)}
+                  </StyledCard>
+                  <StyledCard wide title="Angular velocity" foottext={!(this.state.roverIMU.gyro) && "waiting for data"}>
+                    {this.state.roverIMU.gyro && (<>
+                      <Box align="center" justify="center">
+                        <MovingGraph data={this.state.roverIMU.gyro} unit="°/s" />
+                      </Box>
+                    </>)}
+                  </StyledCard>
+                  <StyledCard wide title="Magnetic field" foottext={!(this.state.roverIMU.field) && "waiting for data"}>
+                    {this.state.roverIMU.field && (<>
+                      <Box align="center" justify="center">
+                        <MovingGraph data={this.state.roverIMU.field} unit="G" />
+                      </Box>
+                    </>)}
+                  </StyledCard>
                 </Box>
               </Tab>
               <Tab title="Drive" icon={<Gamepad />} >
                 <Box justify="center" className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
-                  <Card className="card card-basic" elevation="0" width={{ "min": "300px", "max": "400px" }} margin="small" background={{ "color": "background-front" }}>
-                    <CardBody pad="small">
-                      <Box align="center" justify="center" direction="row" margin={{ "bottom": "small" }}>
-                        <Box align="end" justify="center">
-                          <Stack guidingChild={1}>
-                            <Diagram
-                              connections={[
-                                {
-                                  fromTarget: '1',
-                                  toTarget: '0',
-                                  thickness: 'xsmall',
-                                  color: 'accent-1',
-                                  type: 'curved',
-                                },
-                                {
-                                  fromTarget: '2',
-                                  toTarget: '0',
-                                  thickness: 'xsmall',
-                                  color: 'accent-1',
-                                  type: 'curved',
-                                },
-                                {
-                                  fromTarget: '3',
-                                  toTarget: '0',
-                                  thickness: 'xsmall',
-                                  color: 'accent-1',
-                                  type: 'curved',
-                                },
-                                {
-                                  fromTarget: '4',
-                                  toTarget: '0',
-                                  thickness: 'xsmall',
-                                  color: 'accent-1',
-                                  type: 'curved',
-                                }
-                              ]}
-                            />
-                            <Box>
-                              <Box direction="row">
-                                <Box id="1" margin="small" pad="medium" background="status-ok" />
-                                <Box id="5" margin="small" pad="medium" background="none" />
-                                <Box id="2" margin="small" pad="medium" background="status-ok" />
-                              </Box>
-                              <Box direction="row" justify="center">
-                                <Box id="0" margin="small" pad="medium" background="#313131"><Trigger size="medium" color={'brand'} /></Box>
-                              </Box>
-                              <Box direction="row">
-                                <Box id="3" margin="small" pad="medium" background="status-ok" />
-                                <Box id="8" margin="small" pad="medium" background="none" />
-                                <Box id="4" margin="small" pad="medium" background="status-ok" />
-                              </Box>
-                            </Box>
-                          </Stack>
+                  <StyledCard foottext={this.state.connected ? "Error: right front controller - low voltage" : ""}>
+                    <Box align="center" justify="center" margin={{ "bottom": "small" }}>
+                      <Stack guidingChild={1}>
+                        <Diagram
+                          connections={[
+                            {
+                              fromTarget: '1',
+                              toTarget: '0',
+                              thickness: 'xsmall',
+                              color: this.state.connected ? "accent-4" : "status-unknown",
+                              type: 'curved',
+                            },
+                            {
+                              fromTarget: '2',
+                              toTarget: '0',
+                              thickness: 'xsmall',
+                              color: this.state.connected ? "status-warning" : "status-unknown",
+                              type: 'curved',
+                            },
+                            {
+                              fromTarget: '3',
+                              toTarget: '0',
+                              thickness: 'xsmall',
+                              color: this.state.connected ? "accent-4" : "status-unknown",
+                              type: 'curved',
+                            },
+                            {
+                              fromTarget: '4',
+                              toTarget: '0',
+                              thickness: 'xsmall',
+                              color: this.state.connected ? "accent-4" : "status-unknown",
+                              type: 'curved',
+                            }
+                          ]}
+                        />
+                        <Box>
+                          <Box direction="row">
+                            <Box id="1" margin="small" pad="medium" background={this.state.connected ? "status-ok" : "status-unknown"} />
+                            <Box id="5" margin="small" pad="medium" background="none" />
+                            <Box id="2" margin="small" pad="medium" background={this.state.connected ? "status-critical" : "status-unknown"} />
+                          </Box>
+                          <Box direction="row" justify="center">
+                            <Box id="0" margin="small" pad="medium" background="#313131"><Trigger size="medium" color={this.state.connected ? "brand" : "status-unknown"} /></Box>
+                          </Box>
+                          <Box direction="row">
+                            <Box id="3" margin="small" pad="medium" background={this.state.connected ? "status-ok" : "status-unknown"} />
+                            <Box id="8" margin="small" pad="medium" background="none" />
+                            <Box id="4" margin="small" pad="medium" background={this.state.connected ? "status-ok" : "status-unknown"} />
+                          </Box>
                         </Box>
-                      </Box>
+                      </Stack>
+                    </Box>
+                  </StyledCard>
 
-                    </CardBody>
-                    <CardFooter align="center" direction="row" justify="center" background='background-contrast' gap="medium" pad="small">
-                      <Heading level="4" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
-                        motor controller voltage nominal
-                    </Heading>
-                    </CardFooter>
-                  </Card>
                 </Box>
               </Tab>
               <Tab title="Collect Data" icon={<DocumentTest />} />
               <Tab title="Settings" plain={false} disabled={false} icon={<Configure />}>
                 <Box justify="center" className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
-                  <Card className="card card-wide" elevation="0" width={{ "min": "300px", "max": "600px" }} margin="small" background={{ "color": "background-front" }}>
-                    <CardBody pad="small">
-                      <Box align="center" justify="center" direction="row" margin={{ "bottom": "small" }}>
-                        Nothing here yet.
-                      </Box>
-                    </CardBody>
-                  </Card>
+                  <StyledCard wide title="General" foottext="Nothing here yet" />
                 </Box>
               </Tab>
             </Tabs>
