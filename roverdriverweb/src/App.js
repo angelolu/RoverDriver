@@ -1,5 +1,5 @@
 import React from 'react'
-import { Grommet, Box, Header, Heading, Button, Tabs, Tab, Stack, Diagram, ResponsiveContext } from 'grommet'
+import { Grommet, Box, Header, Heading, Button, Tabs, Tab, Stack, Diagram, ResponsiveContext, Collapsible } from 'grommet'
 import { Connect, StatusGoodSmall, Trigger, Wifi, Info, Gamepad, DocumentTest, Configure, Close } from 'grommet-icons'
 import Rover from './Rover'
 import { RoverTheme } from './theme'
@@ -51,8 +51,8 @@ class App extends React.Component {
   }
 
   trimMovingData(workingData) {
-    if (workingData.length > 10) {
-      workingData = workingData.slice(workingData.length - 10);
+    if (workingData.length > (20)) {
+      workingData = workingData.slice(workingData.length - (20));
     }
     return workingData;
   }
@@ -68,7 +68,7 @@ class App extends React.Component {
         // Remove extra values
         workingData = this.trimMovingData(workingData);
       } else {
-        workingData = Array(10).fill({ "time": currentTime, "X": parseFloat(value[0]), "Y": parseFloat(value[1]), "Z": parseFloat(value[2]) });
+        workingData = Array(20).fill({ "time": currentTime, "X": parseFloat(value[0]), "Y": parseFloat(value[1]), "Z": parseFloat(value[2]) });
       }
       // Save data back to state
       this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, accel: workingData } });
@@ -101,7 +101,7 @@ class App extends React.Component {
               // Remove extra values
               workingData = this.trimMovingData(workingData);
             } else {
-              workingData = Array(9).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
+              workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
               workingData = [...workingData, { "time": currentTime, "X": parseFloat(accelValue[0]), "Y": parseFloat(accelValue[1]), "Z": parseFloat(accelValue[2]) }];
             }
             // Save data back to state
@@ -122,7 +122,7 @@ class App extends React.Component {
               // Remove extra values
               workingData = this.trimMovingData(workingData);
             } else {
-              workingData = Array(9).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
+              workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
               workingData = [...workingData, { "time": currentTime, "X": parseFloat(gyroValue[0]), "Y": parseFloat(gyroValue[1]), "Z": parseFloat(gyroValue[2]) }];
             }
             // Save data back to state
@@ -143,7 +143,7 @@ class App extends React.Component {
               // Remove extra values
               workingData = this.trimMovingData(workingData);
             } else {
-              workingData = Array(9).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
+              workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
               workingData = [...workingData, { "time": currentTime, "X": parseFloat(fieldValue[0]), "Y": parseFloat(fieldValue[1]), "Z": parseFloat(fieldValue[2]) }];
             }
             // Save data back to state
@@ -194,35 +194,42 @@ class App extends React.Component {
     return (
       <Grommet full theme={RoverTheme}>
         <Box fill="vertical" overflow="auto" align="center" flex="grow">
-          <Header className="appHeader" align="end" justify="center" gap="medium" background={{ "color": "background-contrast" }} fill="horizontal">
-            <Box className="appHeaderBox" align="center" direction="row" flex="grow" justify="around" wrap="reverse">
-              <Box align="center" justify="center" direction="column" pad="medium" gap="small">
-                <ResponsiveContext.Consumer>
-                  {size => (size !== "small" && size !== "xsmall" &&
-                    <Heading level="2" margin="none" textAlign="start">
-                      {this.state.connected ? "Connected" : "Not Connected"}
-                    </Heading>
-                  )}
-                </ResponsiveContext.Consumer>
-                {this.state.connected ? <Button label="Disconnect" onClick={this.handleDisconnectClick} icon={<Close />} disabled={false} primary /> : <Button label="Connect" onClick={this.handleConnectClick} icon={<Connect />} disabled={false} primary />}
-              </Box>
-              <Box justify="center" direction="row" pad="medium" gap="medium">
-                <Box align="end" justify="center" direction="column">
-                  <Heading level="3" margin="none" textAlign="start">
-                    {this.state.connected ? this.state.rover.getDevice().name : "-"}
-                  </Heading>
-                  <Heading level="4" margin="none" textAlign="start">
-                    {statusMessage}
-                  </Heading>
+          <Header className="appHeader" align="end" justify="center" pad="medium" gap="medium" background={{ "color": "background-contrast" }} fill="horizontal">
+            <ResponsiveContext.Consumer>
+              {size => (
+                <Box className="appHeaderBox" align="center" direction={(size !== "small" && size !== "xsmall") ? "row" : "column-reverse"} flex="grow" justify="between" width={{ "max": "1250px" }} wrap="reverse">
+                  <Box align="center" justify="center" direction="column" gap="small">
+                    {(size !== "small" && size !== "xsmall" &&
+                      <Heading level="2" margin="none" textAlign="start">
+                        {this.state.connected ? "Connected" : "Not Connected"}
+                      </Heading>
+                    )}
+                    {this.state.connected ? <Button label="Disconnect" onClick={this.handleDisconnectClick} icon={<Close />} disabled={false} primary /> : <Button label="Connect" onClick={this.handleConnectClick} icon={<Connect />} disabled={false} primary />}
+                  </Box>
+
+                  <Box justify="center" direction="row" gap="medium" margin={(size === "small" || size === "xsmall") ? { "bottom": "medium" } : "none"}>
+                    <Collapsible direction="vertical" open={this.state.connected}>
+                      <Box align="end" justify="center" direction="column">
+                        <Heading level="3" margin="none" textAlign="start">
+                          {this.state.connected ? this.state.rover.getDevice().name : "-"}
+                        </Heading>
+                        <Heading level="4" margin="none" textAlign="start">
+                          {statusMessage}
+                        </Heading>
+                      </Box>
+                    </Collapsible>
+                    <StatusGoodSmall color={statusColor} size="large" />
+                  </Box>
+
                 </Box>
-                <StatusGoodSmall color={statusColor} size="large" />
-              </Box>
-            </Box>
+              )}
+
+            </ResponsiveContext.Consumer>
           </Header>
-          <Box className="box_Content">
-            <Tabs justify="center" margin={{ "top": "none", "bottom": "medium", "left": "small", "right": "small" }} flex>
+          <Box className="box_Content" width={{ "max": "1250px" }}>
+            <Tabs justify="center" flex>
               <Tab title="Status" icon={<Info />}>
-                <Box justify="center" className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
+                <Box justify="center" pad={{ "top": "none", "bottom": "medium", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" align="stretch" fill hoverIndicator={false}>
                   <StyledCard title="System" >
                     <StateBox icon={<Trigger size="medium" />} name="Battery" unit="V" value={this.state.roverState.voltage ? this.state.roverState.voltage : "-"} />
                     <StateBox icon={<Wifi size="medium" />} name="Signal Strength" value={this.state.connected ? "Medium" : "-"} />
@@ -251,7 +258,7 @@ class App extends React.Component {
                 </Box>
               </Tab>
               <Tab title="Drive" icon={<Gamepad />} >
-                <Box justify="center" className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
+                <Box justify="center" pad={{ "top": "none", "bottom": "medium", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
                   <StyledCard foottext={this.state.connected ? "Error: right front controller - low voltage" : ""}>
                     <Box align="center" justify="center" margin={{ "bottom": "small" }}>
                       <Stack guidingChild={1}>
@@ -308,9 +315,9 @@ class App extends React.Component {
 
                 </Box>
               </Tab>
-              <Tab title="Collect Data" icon={<DocumentTest />} />
+              <Tab title="Log" icon={<DocumentTest />} />
               <Tab title="Settings" plain={false} disabled={false} icon={<Configure />}>
-                <Box justify="center" className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
+                <Box justify="center" pad={{ "top": "none", "bottom": "medium", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
                   <StyledCard wide title="General" foottext="Nothing here yet" />
                 </Box>
               </Tab>

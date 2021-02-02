@@ -11,18 +11,8 @@
 /* Small devices (portrait tablets and large phones, 600px and up) */
 @media only screen and (min-width: 750px) {
   .box_Content{
-    width: 70%;
     align-items: stretch;
   }
-}
-
-
-.card-basic{
-  flex-grow: 1;
-}
-
-.card-wide{
-  flex-grow: 2;
 }
 
 .appHeaderImage {
