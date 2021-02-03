@@ -1,4 +1,5 @@
-import { Box, DataChart, Text, Heading, CardFooter, Card, CardHeader, CardBody } from 'grommet'
+import { Box, DataChart, Text, Heading, CardFooter, Card, CardHeader, CardBody, Layer, Button } from 'grommet'
+import { FormClose, StatusInfo } from 'grommet-icons'
 
 export function StateBox(props) {
     return <>
@@ -41,4 +42,38 @@ export function MovingGraph(props) {
                         </Text>
         <DataChart axis={{ "x": { "granularity": "coarse" }, "y": { "granularity": "medium" } }} chart={[{ "property": "X", "type": "line", "thickness": "xxsmall", "dash": false, "round": false, "color": "accent-4" }, { "property": "Y", "type": "line", "color": "accent-3", "thickness": "xxsmall", "round": false }, { "property": "Z", "type": "line", "color": "accent-2", "thickness": "xxsmall", "round": false }]} data={props.data} guide={{ "x": { "granularity": "fine" }, "y": { "granularity": "medium" } }} series={[{ "property": "time", "label": "Time" }, { "property": "X", "label": "X" }, { "property": "Y", "label": "Y" }, { "property": "Z", "label": "Z" }]} size={{ "width": "medium", "height": "150px" }} detail={false} legend />
     </>;
+}
+
+export function NotificationLayer(props) {
+    return (
+        <>
+            {props.shown && (
+                <Layer
+                    position="bottom"
+                    modal={false}
+                    margin={{ vertical: 'medium', horizontal: 'small' }}
+                    responsive={false}
+                    plain
+                >
+                    <Box
+                        align="center"
+                        direction="row"
+                        gap="small"
+                        justify="between"
+                        elevation="xxsmall"
+                        pad={{ vertical: 'small', horizontal: 'small' }}
+                        background="status-warning"
+                    >
+                        <Box align="center" direction="row" gap="small">
+                            <StatusInfo color="#ffffff" />
+                            <Text>
+                                Device updates, warnings and logging are paused while app is hidden
+                </Text>
+                        </Box>
+                        <Button icon={<FormClose />} onClick={props.onClose} plain />
+                    </Box>
+                </Layer>
+            )}
+        </>
+    );
 }

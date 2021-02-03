@@ -3,8 +3,21 @@ import { Grommet, Box, Header, Heading, Button, Tabs, Tab, Stack, Diagram, Respo
 import { Connect, StatusGoodSmall, Trigger, Wifi, Info, Gamepad, DocumentTest, Configure, Close } from 'grommet-icons'
 import Rover from './Rover'
 import { RoverTheme } from './theme'
-import { StateBox, MovingGraph, StyledCard } from './CommonUI'
+import { StateBox, MovingGraph, StyledCard, NotificationLayer } from './CommonUI'
 import './App.css';
+
+
+var hidden, visibilityChange;
+if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
+  hidden = "hidden";
+  visibilityChange = "visibilitychange";
+} else if (typeof document.msHidden !== "undefined") {
+  hidden = "msHidden";
+  visibilityChange = "msvisibilitychange";
+} else if (typeof document.webkitHidden !== "undefined") {
+  hidden = "webkitHidden";
+  visibilityChange = "webkitvisibilitychange";
+}
 
 
 class App extends React.Component {
@@ -13,6 +26,8 @@ class App extends React.Component {
     super(props);
     this.state = {
       rover: null,
+      pageVisible: true,
+      notificationVisible: false,
       connected: false,
       roverState: {},
       roverIMU: {}
@@ -20,14 +35,44 @@ class App extends React.Component {
     this.handleConnectClick = this.handleConnectClick.bind(this);
     this.handleDisconnectClick = this.handleDisconnectClick.bind(this);
     this.handleSimulate = this.handleSimulate.bind(this);
+    this.handleNotificationDismiss = this.handleNotificationDismiss.bind(this);
   }
 
   componentDidMount() {
     this.setState({ ...this.state, rover: new Rover() });
+    document.addEventListener(visibilityChange, () => {
+      this.handleVisibilityChange();
+    }, false);
   }
 
   componentWillUnmount() {
     this.disconnectRover()
+    document.removeEventListener(visibilityChange, () => {
+      this.handleVisibilityChange();
+    });
+  }
+
+  showNotification() {
+    this.setState({ ...this.state, notificationVisible: true });
+    setTimeout(() => {
+      this.setState({ ...this.state, notificationVisible: false });
+    }, 5000);
+  };
+
+  handleVisibilityChange() {
+    if (document[hidden]) {
+      // Update state when page is not visible
+      this.setState({ ...this.state, pageVisible: false });
+    } else {
+      // Update state when page is visible
+      this.setState({ ...this.state, pageVisible: true });
+      // Warn user if app is currently conntected to a device that messages may have been missed
+      if (this.state.connected) this.showNotification();
+    }
+  }
+
+  handleNotificationDismiss() {
+    this.setState({ ...this.state, notificationVisible: false });
   }
 
   handleConnectClick(e) {
@@ -76,84 +121,87 @@ class App extends React.Component {
   }
 
   handleUARTTX(event) {
-    let message = new Uint8Array(event.target.value.buffer);
-    //console.log(">" + String.fromCharCode.apply(null, message));
+    // only parse incoming data if page is visible to prevent unresponsive states after returning to app
+    if (this.state.pageVisible === true) {
+      let message = new Uint8Array(event.target.value.buffer);
+      //console.log(">" + String.fromCharCode.apply(null, message));
 
-    if (message.length > 1) {
-      switch (message[0]) {
-        case 0xA1:
-          // Status
-          this.setState({ ...this.state, roverState: { ...this.state.roverState, status: message[1] } });
-          break;
-        case 0xA2:
-          // Voltage
-          this.setState({ ...this.state, roverState: { ...this.state.roverState, voltage: String.fromCharCode.apply(null, message.slice(1)) } });
-          break;
-        case 0xB1:
-          // Accelerometer
-          // Parse value
-          let accelValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
-          if (accelValue.length === 3) {
-            let currentTime = new Date().toLocaleTimeString();
-            let workingData;
-            if (this.state.roverIMU.accel !== undefined) {
-              workingData = [...this.state.roverIMU.accel, { "time": currentTime, "X": parseFloat(accelValue[0]), "Y": parseFloat(accelValue[1]), "Z": parseFloat(accelValue[2]) }];
-              // Remove extra values
-              workingData = this.trimMovingData(workingData);
+      if (message.length > 1) {
+        switch (message[0]) {
+          case 0xA1:
+            // Status
+            this.setState({ ...this.state, roverState: { ...this.state.roverState, status: message[1] } });
+            break;
+          case 0xA2:
+            // Voltage
+            this.setState({ ...this.state, roverState: { ...this.state.roverState, voltage: String.fromCharCode.apply(null, message.slice(1)) } });
+            break;
+          case 0xB1:
+            // Accelerometer
+            // Parse value
+            let accelValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
+            if (accelValue.length === 3) {
+              let currentTime = new Date().toLocaleTimeString();
+              let workingData;
+              if (this.state.roverIMU.accel !== undefined) {
+                workingData = [...this.state.roverIMU.accel, { "time": currentTime, "X": parseFloat(accelValue[0]), "Y": parseFloat(accelValue[1]), "Z": parseFloat(accelValue[2]) }];
+                // Remove extra values
+                workingData = this.trimMovingData(workingData);
+              } else {
+                workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
+                workingData = [...workingData, { "time": currentTime, "X": parseFloat(accelValue[0]), "Y": parseFloat(accelValue[1]), "Z": parseFloat(accelValue[2]) }];
+              }
+              // Save data back to state
+              this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, accel: workingData } });
             } else {
-              workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
-              workingData = [...workingData, { "time": currentTime, "X": parseFloat(accelValue[0]), "Y": parseFloat(accelValue[1]), "Z": parseFloat(accelValue[2]) }];
+              console.log("Invalid number of accel coordinates recieved");
             }
-            // Save data back to state
-            this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, accel: workingData } });
-          } else {
-            console.log("Invalid number of accel coordinates recieved");
-          }
-          break;
-        case 0xB2:
-          // Gyroscope
-          // Parse value
-          let gyroValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
-          if (gyroValue.length === 3) {
-            let currentTime = new Date().toLocaleTimeString();
-            let workingData;
-            if (this.state.roverIMU.gyro !== undefined) {
-              workingData = [...this.state.roverIMU.gyro, { "time": currentTime, "X": parseFloat(gyroValue[0]), "Y": parseFloat(gyroValue[1]), "Z": parseFloat(gyroValue[2]) }];
-              // Remove extra values
-              workingData = this.trimMovingData(workingData);
+            break;
+          case 0xB2:
+            // Gyroscope
+            // Parse value
+            let gyroValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
+            if (gyroValue.length === 3) {
+              let currentTime = new Date().toLocaleTimeString();
+              let workingData;
+              if (this.state.roverIMU.gyro !== undefined) {
+                workingData = [...this.state.roverIMU.gyro, { "time": currentTime, "X": parseFloat(gyroValue[0]), "Y": parseFloat(gyroValue[1]), "Z": parseFloat(gyroValue[2]) }];
+                // Remove extra values
+                workingData = this.trimMovingData(workingData);
+              } else {
+                workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
+                workingData = [...workingData, { "time": currentTime, "X": parseFloat(gyroValue[0]), "Y": parseFloat(gyroValue[1]), "Z": parseFloat(gyroValue[2]) }];
+              }
+              // Save data back to state
+              this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, gyro: workingData } });
             } else {
-              workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
-              workingData = [...workingData, { "time": currentTime, "X": parseFloat(gyroValue[0]), "Y": parseFloat(gyroValue[1]), "Z": parseFloat(gyroValue[2]) }];
+              console.log("Invalid number of gyro coordinates recieved");
             }
-            // Save data back to state
-            this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, gyro: workingData } });
-          } else {
-            console.log("Invalid number of gyro coordinates recieved");
-          }
-          break;
-        case 0xB3:
-          // Magnetometer 
-          // Parse value
-          let fieldValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
-          if (fieldValue.length === 3) {
-            let currentTime = new Date().toLocaleTimeString();
-            let workingData;
-            if (this.state.roverIMU.field !== undefined) {
-              workingData = [...this.state.roverIMU.field, { "time": currentTime, "X": parseFloat(fieldValue[0]), "Y": parseFloat(fieldValue[1]), "Z": parseFloat(fieldValue[2]) }];
-              // Remove extra values
-              workingData = this.trimMovingData(workingData);
+            break;
+          case 0xB3:
+            // Magnetometer
+            // Parse value
+            let fieldValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
+            if (fieldValue.length === 3) {
+              let currentTime = new Date().toLocaleTimeString();
+              let workingData;
+              if (this.state.roverIMU.field !== undefined) {
+                workingData = [...this.state.roverIMU.field, { "time": currentTime, "X": parseFloat(fieldValue[0]), "Y": parseFloat(fieldValue[1]), "Z": parseFloat(fieldValue[2]) }];
+                // Remove extra values
+                workingData = this.trimMovingData(workingData);
+              } else {
+                workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
+                workingData = [...workingData, { "time": currentTime, "X": parseFloat(fieldValue[0]), "Y": parseFloat(fieldValue[1]), "Z": parseFloat(fieldValue[2]) }];
+              }
+              // Save data back to state
+              this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, field: workingData } });
             } else {
-              workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
-              workingData = [...workingData, { "time": currentTime, "X": parseFloat(fieldValue[0]), "Y": parseFloat(fieldValue[1]), "Z": parseFloat(fieldValue[2]) }];
+              console.log("Invalid number of field coordinates recieved");
             }
-            // Save data back to state
-            this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, field: workingData } });
-          } else {
-            console.log("Invalid number of field coordinates recieved");
-          }
-          break;
-        default:
-          console.log("Unknown Message: " + String.fromCharCode.apply(null, message));
+            break;
+          default:
+            console.log("Unknown Message: " + String.fromCharCode.apply(null, message));
+        }
       }
     }
   }
@@ -193,6 +241,7 @@ class App extends React.Component {
     }
     return (
       <Grommet full theme={RoverTheme}>
+        <NotificationLayer shown={this.state.notificationVisible} onClose={this.handleNotificationDismiss} />
         <Box fill="vertical" overflow="auto" align="center" flex="grow">
           <Header className="appHeader" align="end" justify="center" pad="medium" gap="medium" background={{ "color": "background-contrast" }} fill="horizontal">
             <ResponsiveContext.Consumer>
