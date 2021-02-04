@@ -1,4 +1,4 @@
-import { Box, DataChart, Text, Heading, CardFooter, Card, CardHeader, CardBody, Layer, Button } from 'grommet'
+import { Box, DataChart, Text, Heading, CardFooter, Card, CardHeader, CardBody, Button } from 'grommet'
 import { FormClose, StatusInfo } from 'grommet-icons'
 
 export function StateBox(props) {
@@ -44,36 +44,28 @@ export function MovingGraph(props) {
     </>;
 }
 
-export function NotificationLayer(props) {
+export function StyledNotification(props) {
+
+    function handleClick(e) {
+        props.onClose(props.id);
+    }
+
     return (
-        <>
-            {props.shown && (
-                <Layer
-                    position="bottom"
-                    modal={false}
-                    margin={{ vertical: 'medium', horizontal: 'small' }}
-                    responsive={false}
-                    plain
-                >
-                    <Box
-                        align="center"
-                        direction="row"
-                        gap="small"
-                        justify="between"
-                        elevation="xxsmall"
-                        pad={{ vertical: 'small', horizontal: 'small' }}
-                        background="status-warning"
-                    >
-                        <Box align="center" direction="row" gap="small">
-                            <StatusInfo color="#ffffff" />
-                            <Text>
-                                Device updates, warnings and logging are paused while app is hidden
-                </Text>
-                        </Box>
-                        <Button icon={<FormClose />} onClick={props.onClose} plain />
-                    </Box>
-                </Layer>
-            )}
-        </>
+        <Box
+            align="center"
+            direction="row"
+            gap="medium"
+            justify="between"
+            elevation="xxsmall"
+            pad={{ vertical: 'small', horizontal: 'medium' }}
+            background={props.background}
+            animation={["slideUp"]}
+        >
+            <StatusInfo color="#ffffff" />
+            <Text>
+                {props.text}
+            </Text>
+            <Button icon={<FormClose />} onClick={handleClick} plain />
+        </Box>
     );
 }

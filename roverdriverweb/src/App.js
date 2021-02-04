@@ -1,11 +1,10 @@
 import React from 'react'
-import { Grommet, Box, Header, Heading, Button, Tabs, Tab, Stack, Diagram, ResponsiveContext, Collapsible } from 'grommet'
+import { Grommet, Layer, Box, Header, Heading, Button, Tabs, Tab, Stack, Diagram, ResponsiveContext, Collapsible } from 'grommet'
 import { Connect, StatusGoodSmall, Trigger, Wifi, Info, Gamepad, DocumentTest, Configure, Close } from 'grommet-icons'
 import Rover from './Rover'
 import { RoverTheme } from './theme'
-import { StateBox, MovingGraph, StyledCard, NotificationLayer } from './CommonUI'
+import { StateBox, MovingGraph, StyledCard, StyledNotification } from './CommonUI'
 import './App.css';
-
 
 var hidden, visibilityChange;
 if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
@@ -19,7 +18,6 @@ if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and 
   visibilityChange = "webkitvisibilitychange";
 }
 
-
 class App extends React.Component {
 
   constructor(props) {
@@ -27,8 +25,9 @@ class App extends React.Component {
     this.state = {
       rover: null,
       pageVisible: true,
-      notificationVisible: false,
-      connected: false,
+      notifications: [],
+      isConnected: false,
+      isConnecting: false,
       roverState: {},
       roverIMU: {}
     };
@@ -52,13 +51,6 @@ class App extends React.Component {
     });
   }
 
-  showNotification() {
-    this.setState({ ...this.state, notificationVisible: true });
-    setTimeout(() => {
-      this.setState({ ...this.state, notificationVisible: false });
-    }, 5000);
-  };
-
   handleVisibilityChange() {
     if (document[hidden]) {
       // Update state when page is not visible
@@ -67,157 +59,155 @@ class App extends React.Component {
       // Update state when page is visible
       this.setState({ ...this.state, pageVisible: true });
       // Warn user if app is currently conntected to a device that messages may have been missed
-      if (this.state.connected) this.showNotification();
+      if (this.state.isConnected) this.showNotification("Device updates, warnings and logging are paused while the app is hidden", "status-warning", 5000);
     }
   }
 
-  handleNotificationDismiss() {
-    this.setState({ ...this.state, notificationVisible: false });
-  }
+  showNotification(message, color, duration) {
+    let notifications = this.state.notifications;
+    let key = Date.now
+    let notification = {
+      key: key,
+      text: message,
+      closeHandler: this.handleNotificationDismiss,
+      background: color
+    };
+    notifications.push(notification);
+    this.setState({ ...this.state, notifications: notifications });
+    setTimeout(() => {
+      this.dismissNotification(key);
+    }, duration);
+  };
 
-  handleConnectClick(e) {
-    e.preventDefault();
-    this.state.rover.request()
-      .then(_ => this.state.rover.connect())
-      .then((bluetoothRemoteGATTServer) => { /* Do something with rover... */
-        console.log(this.state.rover.getDevice());
-        this.state.rover.getDevice().addEventListener('gattserverdisconnected', _ => {
-          this.setState({ ...this.state, connected: false, roverState: {}, roverIMU: {} });
-        });
-        this.state.rover.startTxNotifications((event) => {
-          this.handleUARTTX(event)
-        });
-        this.setState({ ...this.state, connected: true });
-      })
-      .catch(error => {
-        console.log(error);
-        this.setState({ ...this.state, connected: false });
-      });
-  }
-
-  trimMovingData(workingData) {
-    if (workingData.length > (20)) {
-      workingData = workingData.slice(workingData.length - (20));
+  dismissNotification(key){
+    let notifications = this.state.notifications;
+    const found = notifications.findIndex(element => element.key === key);
+    if (found > -1) {
+      notifications.splice(found, 1);
+      this.setState({ ...this.state, notifications: notifications });
     }
-    return workingData;
+  }
+
+  handleNotificationDismiss(key) {
+    this.dismissNotification(key);
+  }
+
+  /*
+  Take in CharCode containing three-axis data split by semicolons and
+  the array to manipulate. Returns the array of length 20 (
+  corrosponding to about 10 seconds of sensor data) with the new
+  item added.
+  */
+  addMovingData(item, dataSet) {
+    let itemValues = String.fromCharCode.apply(null, item).split(";");
+    if (itemValues.length === 3) {
+      let currentTime = new Date().toLocaleTimeString();
+      // Check if dataSet already has items
+      if (dataSet !== undefined) {
+        // Trim dataSet if it already has 19 items (will be 20 items after append)
+        if (dataSet.length > (19)) dataSet.shift();
+      } else {
+        // Create an array of 19 items with zeros just to fill up the
+        // chart on first render
+        dataSet = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
+      }
+      // Save new item coordinates
+      dataSet.push({ "time": currentTime, "X": parseFloat(itemValues[0]), "Y": parseFloat(itemValues[1]), "Z": parseFloat(itemValues[2]) });
+    } else {
+      console.log("Invalid number of coordinates recieved");
+    }
+    return dataSet;
   }
 
   handleSimulate(e) {
+    e.preventDefault();
     // Helper for whatever I'm working on
-    let value = "12.5;13.5;5.3".split(";")
-    if (value.length === 3) {
-      let currentTime = new Date().toLocaleTimeString();
-      let workingData;
-      if (this.state.roverIMU.accel !== undefined) {
-        workingData = [...this.state.roverIMU.accel, { "time": currentTime, "X": parseFloat(value[0]), "Y": parseFloat(value[1]), "Z": parseFloat(value[2]) }];
-        // Remove extra values
-        workingData = this.trimMovingData(workingData);
-      } else {
-        workingData = Array(20).fill({ "time": currentTime, "X": parseFloat(value[0]), "Y": parseFloat(value[1]), "Z": parseFloat(value[2]) });
-      }
-      // Save data back to state
-      this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, accel: workingData } });
-    }
+    this.showNotification("This is a test notification", "status-ok", 4000);
   }
 
   handleUARTTX(event) {
-    // only parse incoming data if page is visible to prevent unresponsive states after returning to app
-    if (this.state.pageVisible === true) {
-      let message = new Uint8Array(event.target.value.buffer);
-      //console.log(">" + String.fromCharCode.apply(null, message));
+    let message = new Uint8Array(event.target.value.buffer);
+    //console.log(">" + String.fromCharCode.apply(null, message));
 
-      if (message.length > 1) {
-        switch (message[0]) {
-          case 0xA1:
-            // Status
-            this.setState({ ...this.state, roverState: { ...this.state.roverState, status: message[1] } });
-            break;
-          case 0xA2:
-            // Voltage
-            this.setState({ ...this.state, roverState: { ...this.state.roverState, voltage: String.fromCharCode.apply(null, message.slice(1)) } });
-            break;
-          case 0xB1:
-            // Accelerometer
-            // Parse value
-            let accelValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
-            if (accelValue.length === 3) {
-              let currentTime = new Date().toLocaleTimeString();
-              let workingData;
-              if (this.state.roverIMU.accel !== undefined) {
-                workingData = [...this.state.roverIMU.accel, { "time": currentTime, "X": parseFloat(accelValue[0]), "Y": parseFloat(accelValue[1]), "Z": parseFloat(accelValue[2]) }];
-                // Remove extra values
-                workingData = this.trimMovingData(workingData);
-              } else {
-                workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
-                workingData = [...workingData, { "time": currentTime, "X": parseFloat(accelValue[0]), "Y": parseFloat(accelValue[1]), "Z": parseFloat(accelValue[2]) }];
-              }
-              // Save data back to state
-              this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, accel: workingData } });
-            } else {
-              console.log("Invalid number of accel coordinates recieved");
-            }
-            break;
-          case 0xB2:
-            // Gyroscope
-            // Parse value
-            let gyroValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
-            if (gyroValue.length === 3) {
-              let currentTime = new Date().toLocaleTimeString();
-              let workingData;
-              if (this.state.roverIMU.gyro !== undefined) {
-                workingData = [...this.state.roverIMU.gyro, { "time": currentTime, "X": parseFloat(gyroValue[0]), "Y": parseFloat(gyroValue[1]), "Z": parseFloat(gyroValue[2]) }];
-                // Remove extra values
-                workingData = this.trimMovingData(workingData);
-              } else {
-                workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
-                workingData = [...workingData, { "time": currentTime, "X": parseFloat(gyroValue[0]), "Y": parseFloat(gyroValue[1]), "Z": parseFloat(gyroValue[2]) }];
-              }
-              // Save data back to state
-              this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, gyro: workingData } });
-            } else {
-              console.log("Invalid number of gyro coordinates recieved");
-            }
-            break;
-          case 0xB3:
-            // Magnetometer
-            // Parse value
-            let fieldValue = String.fromCharCode.apply(null, message.slice(1)).split(";");
-            if (fieldValue.length === 3) {
-              let currentTime = new Date().toLocaleTimeString();
-              let workingData;
-              if (this.state.roverIMU.field !== undefined) {
-                workingData = [...this.state.roverIMU.field, { "time": currentTime, "X": parseFloat(fieldValue[0]), "Y": parseFloat(fieldValue[1]), "Z": parseFloat(fieldValue[2]) }];
-                // Remove extra values
-                workingData = this.trimMovingData(workingData);
-              } else {
-                workingData = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
-                workingData = [...workingData, { "time": currentTime, "X": parseFloat(fieldValue[0]), "Y": parseFloat(fieldValue[1]), "Z": parseFloat(fieldValue[2]) }];
-              }
-              // Save data back to state
-              this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, field: workingData } });
-            } else {
-              console.log("Invalid number of field coordinates recieved");
-            }
-            break;
-          default:
-            console.log("Unknown Message: " + String.fromCharCode.apply(null, message));
-        }
+    if (message.length > 1) {
+      switch (message[0]) {
+        case 0xA1:
+          // Status
+          this.setState({ ...this.state, roverState: { ...this.state.roverState, status: message[1] } });
+          break;
+        case 0xA2:
+          // Voltage
+          this.setState({ ...this.state, roverState: { ...this.state.roverState, voltage: String.fromCharCode.apply(null, message.slice(1)) } });
+          break;
+        case 0xB1:
+          // Accelerometer
+          // Parse value, removing subject byte
+          let accelData = this.addMovingData(message.slice(1), this.state.roverIMU.accel);
+          // Save data back to state
+          this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, accel: accelData } });
+          break;
+        case 0xB2:
+          // Gyroscope
+          // Parse value, removing subject byte
+          let gyroData = this.addMovingData(message.slice(1), this.state.roverIMU.gyro);
+          // Save data back to state
+          this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, gyro: gyroData } });
+          break;
+        case 0xB3:
+          // Magnetometer
+          // Parse value, removing subject byte
+          let fieldData = this.addMovingData(message.slice(1), this.state.roverIMU.field);
+          // Save data back to state
+          this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, field: fieldData } });
+          break;
+        default:
+          console.log("Unknown Message: " + String.fromCharCode.apply(null, message));
       }
     }
   }
 
   disconnectRover() {
-    if (this.state.connected === true) {
+    if (this.state.isConnected === true) {
       this.state.rover.disconnect();
     }
-    this.setState({ ...this.state, connected: false, roverState: {}, roverIMU: {} });
+    this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
+  }
+
+  handleConnectClick(e) {
+    e.preventDefault();
+    this.setState({ ...this.state, isConnecting: true });
+    this.state.rover.request()
+      .then(_ => this.state.rover.connect())
+      .then((bluetoothRemoteGATTServer) => { /* Do something with rover... */
+        console.log(this.state.rover.getDevice());
+        this.state.rover.getDevice().addEventListener('gattserverdisconnected', _ => {
+          this.showNotification("Rover connection lost", "status-critical", 5000);
+          this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
+        });
+        this.state.rover.startTxNotifications((event) => {
+          // only parse incoming data if page is visible to prevent
+          // unresponsive states after returning to app
+          if (this.state.pageVisible === true)
+            this.handleUARTTX(event)
+        });
+        this.setState({ ...this.state, isConnected: true, isConnecting: false });
+      })
+      .catch(error => {
+        console.log(error.name);
+        // show a notification if the error is not due to the user
+        // dismissing the connection prompt
+        if(error.name !== "NotFoundError"){
+          this.showNotification(error.message + " Try again.", "status-critical", 4000);
+        }
+        this.setState({ ...this.state, isConnected: false, isConnecting: false });
+      });
   }
 
   handleDisconnectClick(e) {
     e.preventDefault();
-    this.state.rover.disconnect();
-    this.setState({ ...this.state, connected: false, roverState: {}, roverIMU: {} });
+    this.disconnectRover();
   }
+
   render() {
     let statusColor = "status-unknown";
     let statusMessage = "UNKNOWN";
@@ -241,7 +231,20 @@ class App extends React.Component {
     }
     return (
       <Grommet full theme={RoverTheme}>
-        <NotificationLayer shown={this.state.notificationVisible} onClose={this.handleNotificationDismiss} />
+        <Layer
+          className="notificationLayer"
+          position="bottom"
+          modal={false}
+          margin={{ vertical: 'medium', horizontal: 'small' }}
+          responsive={false}
+          plain
+        >
+          <Box width={{ "max": "1250px" }} gap="small">
+            {this.state.notifications.map((notification) =>
+              <StyledNotification key={notification.key} id={notification.key} text={notification.text} onClose={notification.closeHandler} background={notification.background} />
+            )}
+          </Box>
+        </Layer>
         <Box fill="vertical" overflow="auto" align="center" flex="grow">
           <Header className="appHeader" align="end" justify="center" pad="medium" gap="medium" background={{ "color": "background-contrast" }} fill="horizontal">
             <ResponsiveContext.Consumer>
@@ -250,17 +253,17 @@ class App extends React.Component {
                   <Box align="center" justify="center" direction="column" gap="small">
                     {(size !== "small" && size !== "xsmall" &&
                       <Heading level="2" margin="none" textAlign="start">
-                        {this.state.connected ? "Connected" : "Not Connected"}
+                        {this.state.isConnected ? "Connected" : "Not Connected"}
                       </Heading>
                     )}
-                    {this.state.connected ? <Button label="Disconnect" onClick={this.handleDisconnectClick} icon={<Close />} disabled={false} primary /> : <Button label="Connect" onClick={this.handleConnectClick} icon={<Connect />} disabled={false} primary />}
+                    {this.state.isConnected ? <Button label="Disconnect" onClick={this.handleDisconnectClick} icon={<Close />} disabled={false} primary /> : <Button label="Connect" onClick={this.handleConnectClick} icon={<Connect />} disabled={this.state.isConnecting} primary />}
                   </Box>
-
+                  <Button label="Try Me" onClick={this.handleSimulate} icon={<Connect />} primary />
                   <Box justify="center" direction="row" gap="medium" margin={(size === "small" || size === "xsmall") ? { "bottom": "medium" } : "none"}>
-                    <Collapsible direction="vertical" open={this.state.connected}>
+                    <Collapsible direction="vertical" open={this.state.isConnected}>
                       <Box align="end" justify="center" direction="column">
                         <Heading level="3" margin="none" textAlign="start">
-                          {this.state.connected ? this.state.rover.getDevice().name : "-"}
+                          {this.state.isConnected ? this.state.rover.getDevice().name : "-"}
                         </Heading>
                         <Heading level="4" margin="none" textAlign="start">
                           {statusMessage}
@@ -275,13 +278,13 @@ class App extends React.Component {
 
             </ResponsiveContext.Consumer>
           </Header>
-          <Box className="box_Content" width={{ "max": "1250px" }}>
+          <Box className="box_Content" fill="horizontal" width={{ "max": "1250px" }}>
             <Tabs justify="center" flex>
               <Tab title="Status" icon={<Info />}>
                 <Box justify="center" pad={{ "top": "none", "bottom": "medium", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" align="stretch" fill hoverIndicator={false}>
                   <StyledCard title="System" >
                     <StateBox icon={<Trigger size="medium" />} name="Battery" unit="V" value={this.state.roverState.voltage ? this.state.roverState.voltage : "-"} />
-                    <StateBox icon={<Wifi size="medium" />} name="Signal Strength" value={this.state.connected ? "Medium" : "-"} />
+                    <StateBox icon={<Wifi size="medium" />} name="Signal Strength" value={this.state.isConnected ? "Medium" : "-"} />
                   </StyledCard>
                   <StyledCard wide title="Acceleration" foottext={!(this.state.roverIMU.accel) && "waiting for data"}>
                     {this.state.roverIMU.gyro && (<>
@@ -308,7 +311,7 @@ class App extends React.Component {
               </Tab>
               <Tab title="Drive" icon={<Gamepad />} >
                 <Box justify="center" pad={{ "top": "none", "bottom": "medium", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
-                  <StyledCard foottext={this.state.connected ? "Error: right front controller - low voltage" : ""}>
+                  <StyledCard foottext={this.state.isConnected ? "Error: right front controller - low voltage" : ""}>
                     <Box align="center" justify="center" margin={{ "bottom": "small" }}>
                       <Stack guidingChild={1}>
                         <Diagram
@@ -317,51 +320,50 @@ class App extends React.Component {
                               fromTarget: '1',
                               toTarget: '0',
                               thickness: 'xsmall',
-                              color: this.state.connected ? "accent-4" : "status-unknown",
+                              color: this.state.isConnected ? "accent-4" : "status-unknown",
                               type: 'curved',
                             },
                             {
                               fromTarget: '2',
                               toTarget: '0',
                               thickness: 'xsmall',
-                              color: this.state.connected ? "status-warning" : "status-unknown",
+                              color: this.state.isConnected ? "status-warning" : "status-unknown",
                               type: 'curved',
                             },
                             {
                               fromTarget: '3',
                               toTarget: '0',
                               thickness: 'xsmall',
-                              color: this.state.connected ? "accent-4" : "status-unknown",
+                              color: this.state.isConnected ? "accent-4" : "status-unknown",
                               type: 'curved',
                             },
                             {
                               fromTarget: '4',
                               toTarget: '0',
                               thickness: 'xsmall',
-                              color: this.state.connected ? "accent-4" : "status-unknown",
+                              color: this.state.isConnected ? "accent-4" : "status-unknown",
                               type: 'curved',
                             }
                           ]}
                         />
                         <Box>
                           <Box direction="row">
-                            <Box id="1" margin="small" pad="medium" background={this.state.connected ? "status-ok" : "status-unknown"} />
+                            <Box id="1" margin="small" pad="medium" background={this.state.isConnected ? "status-ok" : "status-unknown"} />
                             <Box id="5" margin="small" pad="medium" background="none" />
-                            <Box id="2" margin="small" pad="medium" background={this.state.connected ? "status-critical" : "status-unknown"} />
+                            <Box id="2" margin="small" pad="medium" background={this.state.isConnected ? "status-critical" : "status-unknown"} />
                           </Box>
                           <Box direction="row" justify="center">
-                            <Box id="0" margin="small" pad="medium" background="#313131"><Trigger size="medium" color={this.state.connected ? "brand" : "status-unknown"} /></Box>
+                            <Box id="0" margin="small" pad="medium" background="#313131"><Trigger size="medium" color={this.state.isConnected ? "brand" : "status-unknown"} /></Box>
                           </Box>
                           <Box direction="row">
-                            <Box id="3" margin="small" pad="medium" background={this.state.connected ? "status-ok" : "status-unknown"} />
+                            <Box id="3" margin="small" pad="medium" background={this.state.isConnected ? "status-ok" : "status-unknown"} />
                             <Box id="8" margin="small" pad="medium" background="none" />
-                            <Box id="4" margin="small" pad="medium" background={this.state.connected ? "status-ok" : "status-unknown"} />
+                            <Box id="4" margin="small" pad="medium" background={this.state.isConnected ? "status-ok" : "status-unknown"} />
                           </Box>
                         </Box>
                       </Stack>
                     </Box>
                   </StyledCard>
-
                 </Box>
               </Tab>
               <Tab title="Log" icon={<DocumentTest />} />

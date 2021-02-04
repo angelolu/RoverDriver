@@ -15,6 +15,10 @@
   }
 }
 
+.notificationLayer{
+  width: max-content;
+}
+
 .appHeaderImage {
   /* The image used */
   background-image: url("moon.png");
