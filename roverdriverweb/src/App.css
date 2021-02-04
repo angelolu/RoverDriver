@@ -1,0 +1,37 @@
+.tabContents{
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+/* Extra small devices (phones, 600px and down) */
+@media only screen and (max-width: 750px) {
+
+}
+
+/* Small devices (portrait tablets and large phones, 600px and up) */
+@media only screen and (min-width: 750px) {
+  .box_Content{
+    align-items: stretch;
+  }
+}
+
+.notificationLayer{
+  width: max-content;
+}
+
+.appHeaderImage {
+  /* The image used */
+  background-image: url("moon.png");
+
+  /* Add the blur effect */
+  filter: blur(8px);
+  -webkit-filter: blur(8px);
+
+  /* Full height */
+  height: 100%;
+
+  /* Center and scale the image nicely */
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
