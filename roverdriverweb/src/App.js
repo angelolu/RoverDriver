@@ -44,11 +44,10 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    this.setState({ ...this.state, rover: new Rover() });
+    this.setState({ ...this.state, rover: new Rover() }, () => this.handlePreferenceUpdate());
     document.addEventListener(visibilityChange, () => {
       this.handleVisibilityChange();
     }, false);
-    this.handlePreferenceUpdate();
   }
 
   componentWillUnmount() {
