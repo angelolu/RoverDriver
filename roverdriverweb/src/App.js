@@ -2,11 +2,16 @@ import React from 'react'
 import { Grommet, Layer, Box, Header, Heading, Button, Tabs, Tab, Stack, Diagram, ResponsiveContext, Collapsible } from 'grommet'
 import { Connect, StatusGoodSmall, Trigger, Wifi, Info, Gamepad, DocumentTest, Configure, Close } from 'grommet-icons'
 import Rover from './Rover'
+import TabSettings from './TabSettings'
 import { RoverTheme } from './theme'
 import { StateBox, MovingGraph, StyledCard, StyledNotification } from './CommonUI'
 import './App.css';
+import ls from 'local-storage'
+
+const testingFunction = false;
 
 var hidden, visibilityChange;
+var pageVisible = true;
 if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
   hidden = "hidden";
   visibilityChange = "visibilitychange";
@@ -23,8 +28,8 @@ class App extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      themeMode: "dark",
       rover: null,
-      pageVisible: true,
       notifications: [],
       isConnected: false,
       isConnecting: false,
@@ -35,6 +40,7 @@ class App extends React.Component {
     this.handleDisconnectClick = this.handleDisconnectClick.bind(this);
     this.handleSimulate = this.handleSimulate.bind(this);
     this.handleNotificationDismiss = this.handleNotificationDismiss.bind(this);
+    this.handlePreferenceUpdate = this.handlePreferenceUpdate.bind(this);
   }
 
   componentDidMount() {
@@ -42,6 +48,7 @@ class App extends React.Component {
     document.addEventListener(visibilityChange, () => {
       this.handleVisibilityChange();
     }, false);
+    this.handlePreferenceUpdate();
   }
 
   componentWillUnmount() {
@@ -54,13 +61,18 @@ class App extends React.Component {
   handleVisibilityChange() {
     if (document[hidden]) {
       // Update state when page is not visible
-      this.setState({ ...this.state, pageVisible: false });
+      pageVisible = false;
     } else {
       // Update state when page is visible
-      this.setState({ ...this.state, pageVisible: true });
+      pageVisible = true;
       // Warn user if app is currently conntected to a device that messages may have been missed
       if (this.state.isConnected) this.showNotification("Device updates, warnings and logging are paused while the app is hidden", "status-warning", 5000);
     }
+  }
+
+  handlePreferenceUpdate(){
+    let currentTheme = (ls.get('lightMode') || false) ? "light" : "dark";
+    this.setState({ ...this.state, themeMode: currentTheme})
   }
 
   showNotification(message, color, duration) {
@@ -187,7 +199,7 @@ class App extends React.Component {
         this.state.rover.startTxNotifications((event) => {
           // only parse incoming data if page is visible to prevent
           // unresponsive states after returning to app
-          if (this.state.pageVisible === true)
+          if (pageVisible === true)
             this.handleUARTTX(event)
         });
         this.setState({ ...this.state, isConnected: true, isConnecting: false });
@@ -229,8 +241,9 @@ class App extends React.Component {
         statusMessage = "UNKNOWN";
         break;
     }
+
     return (
-      <Grommet full theme={RoverTheme}>
+      <Grommet full theme={RoverTheme} themeMode={this.state.themeMode}>
         <Layer
           className="notificationLayer"
           position="bottom"
@@ -258,7 +271,7 @@ class App extends React.Component {
                     )}
                     {this.state.isConnected ? <Button label="Disconnect" onClick={this.handleDisconnectClick} icon={<Close />} disabled={false} primary /> : <Button label="Connect" onClick={this.handleConnectClick} icon={<Connect />} disabled={this.state.isConnecting} primary />}
                   </Box>
-                  <Button label="Try Me" onClick={this.handleSimulate} icon={<Connect />} primary />
+                  {testingFunction && <Button label="Try Me" onClick={this.handleSimulate} icon={<Connect />} primary />}
                   <Box justify="center" direction="row" gap="medium" margin={(size === "small" || size === "xsmall") ? { "bottom": "medium" } : "none"}>
                     <Collapsible direction="vertical" open={this.state.isConnected}>
                       <Box align="end" justify="center" direction="column">
@@ -368,9 +381,7 @@ class App extends React.Component {
               </Tab>
               <Tab title="Log" icon={<DocumentTest />} />
               <Tab title="Settings" plain={false} disabled={false} icon={<Configure />}>
-                <Box justify="center" pad={{ "top": "none", "bottom": "medium", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
-                  <StyledCard wide title="General" foottext="Nothing here yet" />
-                </Box>
+                <TabSettings onPreferenceUpdate={this.handlePreferenceUpdate}/>
               </Tab>
             </Tabs>
           </Box>
