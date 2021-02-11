@@ -6,6 +6,8 @@ import { RoverTheme } from './theme'
 import { StateBox, MovingGraph, StyledCard, StyledNotification } from './CommonUI'
 import './App.css';
 
+const testingFunction = false;
+
 var hidden, visibilityChange;
 if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
   hidden = "hidden";
@@ -258,7 +260,7 @@ class App extends React.Component {
                     )}
                     {this.state.isConnected ? <Button label="Disconnect" onClick={this.handleDisconnectClick} icon={<Close />} disabled={false} primary /> : <Button label="Connect" onClick={this.handleConnectClick} icon={<Connect />} disabled={this.state.isConnecting} primary />}
                   </Box>
-                  <Button label="Try Me" onClick={this.handleSimulate} icon={<Connect />} primary />
+                  {testingFunction && <Button label="Try Me" onClick={this.handleSimulate} icon={<Connect />} primary />}
                   <Box justify="center" direction="row" gap="medium" margin={(size === "small" || size === "xsmall") ? { "bottom": "medium" } : "none"}>
                     <Collapsible direction="vertical" open={this.state.isConnected}>
                       <Box align="end" justify="center" direction="column">
