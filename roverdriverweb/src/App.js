@@ -1,5 +1,5 @@
 import React from 'react'
-import { Grommet, Layer, Box, Header, Heading, Button, Tabs, Tab, Stack, Diagram, ResponsiveContext, Collapsible } from 'grommet'
+import { Grommet, Layer, Box, Header, Heading, Button, Tabs, Tab, ResponsiveContext, Collapsible } from 'grommet'
 import { Connect, StatusGoodSmall, Trigger, Wifi, Info, Gamepad, DocumentTest, Configure, Close } from 'grommet-icons'
 import Rover from './Rover'
 import TabSettings from './TabSettings'
@@ -7,6 +7,7 @@ import { RoverTheme } from './theme'
 import { StateBox, MovingGraph, StyledCard, StyledNotification } from './CommonUI'
 import './App.css';
 import ls from 'local-storage'
+import TabDrive from './TabDrive'
 
 const testingFunction = false;
 
@@ -40,6 +41,8 @@ class App extends React.Component {
     this.handleDisconnectClick = this.handleDisconnectClick.bind(this);
     this.handleSimulate = this.handleSimulate.bind(this);
     this.handleNotificationDismiss = this.handleNotificationDismiss.bind(this);
+    this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handlePreferenceUpdate = this.handlePreferenceUpdate.bind(this);
   }
 
@@ -48,13 +51,94 @@ class App extends React.Component {
     document.addEventListener(visibilityChange, () => {
       this.handleVisibilityChange();
     }, false);
+
+    console.log("Listen to key events");
+    document.addEventListener("keydown", (event) => this.handleKeyDown(event));
+    document.addEventListener("keyup", (event) => this.handleKeyUp(event));
   }
 
   componentWillUnmount() {
     this.disconnectRover()
+    // I don't think these fire because they are arrow functions
     document.removeEventListener(visibilityChange, () => {
       this.handleVisibilityChange();
     });
+    document.removeEventListener("keydown", () => this.handleKeyDown);
+    document.removeEventListener("keyup", () => this.handleKeyUp);
+  }
+
+  handleKeyDown(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.repeat !== true && this.state.isConnected && this.state.roverState.status === 2) {
+      let downData = "";
+      switch (event.keyCode) {
+        case (87):
+          // W
+          downData = "51";
+          break;
+        case (65):
+          // A
+          downData = "71";
+          break;
+        case (83):
+          // S
+          downData = "61";
+          break;
+        case (68):
+          // D
+          downData = "81";
+          break;
+        case (38):
+          // Up arrow
+          break;
+        case (40):
+          // Down arrow
+          break;
+        default:
+        // console.log("Down: " + event.keyCode);
+      }
+      if (downData !== "") {
+        this.state.rover.queueMessage("B", downData);
+      }
+    }
+  }
+
+  handleKeyUp(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.state.isConnected && this.state.roverState.status === 2) {
+      let upData = "";
+      switch (event.keyCode) {
+        case (87):
+          // W
+          upData = "50";
+          break;
+        case (65):
+          // A
+          upData = "70";
+          break;
+        case (83):
+          // S
+          upData = "60";
+          break;
+        case (68):
+          // D
+          upData = "80";
+          break;
+        case (38):
+          // Up arrow
+          break;
+        case (40):
+          // Down arrow
+          break;
+        default:
+        // console.log("Down: " + event.keyCode);
+      }
+      if (upData !== "") {
+        this.state.rover.queueMessage("B", upData);
+      }
+    }
   }
 
   handleVisibilityChange() {
@@ -69,9 +153,9 @@ class App extends React.Component {
     }
   }
 
-  handlePreferenceUpdate(){
+  handlePreferenceUpdate() {
     let currentTheme = (ls.get('lightMode') || false) ? "light" : "dark";
-    this.setState({ ...this.state, themeMode: currentTheme})
+    this.setState({ ...this.state, themeMode: currentTheme })
   }
 
   showNotification(message, color, duration) {
@@ -90,7 +174,7 @@ class App extends React.Component {
     }, duration);
   };
 
-  dismissNotification(key){
+  dismissNotification(key) {
     let notifications = this.state.notifications;
     const found = notifications.findIndex(element => element.key === key);
     if (found > -1) {
@@ -207,7 +291,7 @@ class App extends React.Component {
         console.log(error.name);
         // show a notification if the error is not due to the user
         // dismissing the connection prompt
-        if(error.name !== "NotFoundError"){
+        if (error.name !== "NotFoundError") {
           this.showNotification(error.message + " Try again.", "status-critical", 4000);
         }
         this.setState({ ...this.state, isConnected: false, isConnecting: false });
@@ -233,7 +317,7 @@ class App extends React.Component {
         break;
       case 2:
         statusColor = "status-critical";
-        statusMessage = "MOTORS POWERED - DO NOT APPROACH";
+        statusMessage = "MOTORS ON - DO NOT APPROACH";
         break;
       default:
         statusColor = "status-unknown";
@@ -322,65 +406,11 @@ class App extends React.Component {
                 </Box>
               </Tab>
               <Tab title="Drive" icon={<Gamepad />} >
-                <Box justify="center" pad={{ "top": "none", "bottom": "medium", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
-                  <StyledCard foottext={this.state.isConnected ? "Error: right front controller - low voltage" : ""}>
-                    <Box align="center" justify="center" margin={{ "bottom": "small" }}>
-                      <Stack guidingChild={1}>
-                        <Diagram
-                          connections={[
-                            {
-                              fromTarget: '1',
-                              toTarget: '0',
-                              thickness: 'xsmall',
-                              color: this.state.isConnected ? "accent-4" : "status-unknown",
-                              type: 'curved',
-                            },
-                            {
-                              fromTarget: '2',
-                              toTarget: '0',
-                              thickness: 'xsmall',
-                              color: this.state.isConnected ? "status-warning" : "status-unknown",
-                              type: 'curved',
-                            },
-                            {
-                              fromTarget: '3',
-                              toTarget: '0',
-                              thickness: 'xsmall',
-                              color: this.state.isConnected ? "accent-4" : "status-unknown",
-                              type: 'curved',
-                            },
-                            {
-                              fromTarget: '4',
-                              toTarget: '0',
-                              thickness: 'xsmall',
-                              color: this.state.isConnected ? "accent-4" : "status-unknown",
-                              type: 'curved',
-                            }
-                          ]}
-                        />
-                        <Box>
-                          <Box direction="row">
-                            <Box id="1" margin="small" pad="medium" background={this.state.isConnected ? "status-ok" : "status-unknown"} />
-                            <Box id="5" margin="small" pad="medium" background="none" />
-                            <Box id="2" margin="small" pad="medium" background={this.state.isConnected ? "status-critical" : "status-unknown"} />
-                          </Box>
-                          <Box direction="row" justify="center">
-                            <Box id="0" margin="small" pad="medium" background="#313131"><Trigger size="medium" color={this.state.isConnected ? "brand" : "status-unknown"} /></Box>
-                          </Box>
-                          <Box direction="row">
-                            <Box id="3" margin="small" pad="medium" background={this.state.isConnected ? "status-ok" : "status-unknown"} />
-                            <Box id="8" margin="small" pad="medium" background="none" />
-                            <Box id="4" margin="small" pad="medium" background={this.state.isConnected ? "status-ok" : "status-unknown"} />
-                          </Box>
-                        </Box>
-                      </Stack>
-                    </Box>
-                  </StyledCard>
-                </Box>
+                <TabDrive rover={this.state.rover} isConnected={this.state.isConnected} roverState={this.state.roverState} />
               </Tab>
               <Tab title="Log" icon={<DocumentTest />} />
               <Tab title="Settings" plain={false} disabled={false} icon={<Configure />}>
-                <TabSettings onPreferenceUpdate={this.handlePreferenceUpdate}/>
+                <TabSettings onPreferenceUpdate={this.handlePreferenceUpdate} />
               </Tab>
             </Tabs>
           </Box>
