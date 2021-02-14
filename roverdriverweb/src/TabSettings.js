@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, CheckBox } from "grommet";
+import { Box, CheckBox, Text } from "grommet";
 import { StyledCard } from "./CommonUI";
 import ls from 'local-storage';
 
@@ -45,6 +45,11 @@ class TabSettings extends React.Component {
                         toggle
                     />
                 </Box>
+            </StyledCard>
+            <StyledCard wide title="App Info">
+                <Text>
+                    Built at $build_date$
+                </Text>
             </StyledCard>
         </Box>;
     }

@@ -12,7 +12,6 @@ import TabDrive from './TabDrive'
 const testingFunction = false;
 
 var hidden, visibilityChange;
-var pageVisible = true;
 if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
   hidden = "hidden";
   visibilityChange = "visibilitychange";
@@ -48,26 +47,20 @@ class App extends React.Component {
 
   componentDidMount() {
     this.setState({ ...this.state, rover: new Rover() }, () => this.handlePreferenceUpdate());
-    document.addEventListener(visibilityChange, () => {
-      this.handleVisibilityChange();
-    }, false);
-
-    console.log("Listen to key events");
-    document.addEventListener("keydown", (event) => this.handleKeyDown(event));
-    document.addEventListener("keyup", (event) => this.handleKeyUp(event));
+    document.addEventListener(visibilityChange, this.handleVisibilityChange);
+    document.addEventListener("keydown", this.handleKeyDown);
+    document.addEventListener("keyup", this.handleKeyUp);
   }
 
   componentWillUnmount() {
-    this.disconnectRover()
-    // I don't think these fire because they are arrow functions
-    document.removeEventListener(visibilityChange, () => {
-      this.handleVisibilityChange();
-    });
-    document.removeEventListener("keydown", () => this.handleKeyDown);
+    this.disconnectRover();
+
+    document.removeEventListener(visibilityChange, this.handleVisibilityChange);
+    document.removeEventListener("keydown", this.handleKeyDown);
     document.removeEventListener("keyup", () => this.handleKeyUp);
   }
 
-  handleKeyDown(event) {
+  handleKeyDown = (event) => {
     event.preventDefault();
     event.stopPropagation();
     if (event.repeat !== true && this.state.isConnected && this.state.roverState.status === 2) {
@@ -104,7 +97,7 @@ class App extends React.Component {
     }
   }
 
-  handleKeyUp(event) {
+  handleKeyUp = (event) => {
     event.preventDefault();
     event.stopPropagation();
     if (this.state.isConnected && this.state.roverState.status === 2) {
@@ -141,15 +134,17 @@ class App extends React.Component {
     }
   }
 
-  handleVisibilityChange() {
+  handleVisibilityChange = () => {
     if (document[hidden]) {
       // Update state when page is not visible
-      pageVisible = false;
+      if (this.state.isConnected) this.state.rover.stopTxNotifications(this.handleRoverTX);
     } else {
       // Update state when page is visible
-      pageVisible = true;
       // Warn user if app is currently conntected to a device that messages may have been missed
-      if (this.state.isConnected) this.showNotification("Device updates, warnings and logging are paused while the app is hidden", "status-warning", 5000);
+      if (this.state.isConnected) {
+        this.showNotification("Device updates, warnings and logging are paused while the app is hidden", "status-warning", 5000);
+        this.state.rover.startTxNotifications(this.handleRoverTX);
+      }
     }
   }
 
@@ -160,7 +155,7 @@ class App extends React.Component {
 
   showNotification(message, color, duration) {
     let notifications = this.state.notifications;
-    let key = Date.now
+    let key = Date.now();
     let notification = {
       key: key,
       text: message,
@@ -220,7 +215,17 @@ class App extends React.Component {
     this.showNotification("This is a test notification", "status-ok", 4000);
   }
 
-  handleUARTTX(event) {
+  disconnectRover() {
+    if (this.state.isConnected === true) this.state.rover.disconnect();
+    this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
+  }
+
+  handleRoverDisconnect = (event) => {
+    this.showNotification("Rover connection lost", "status-critical", 5000);
+    this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
+  }
+
+  handleRoverTX = (event) => {
     let message = new Uint8Array(event.target.value.buffer);
     //console.log(">" + String.fromCharCode.apply(null, message));
 
@@ -261,13 +266,6 @@ class App extends React.Component {
     }
   }
 
-  disconnectRover() {
-    if (this.state.isConnected === true) {
-      this.state.rover.disconnect();
-    }
-    this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
-  }
-
   handleConnectClick(e) {
     e.preventDefault();
     this.setState({ ...this.state, isConnecting: true });
@@ -275,16 +273,8 @@ class App extends React.Component {
       .then(_ => this.state.rover.connect())
       .then((bluetoothRemoteGATTServer) => { /* Do something with rover... */
         console.log(this.state.rover.getDevice());
-        this.state.rover.getDevice().addEventListener('gattserverdisconnected', _ => {
-          this.showNotification("Rover connection lost", "status-critical", 5000);
-          this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
-        });
-        this.state.rover.startTxNotifications((event) => {
-          // only parse incoming data if page is visible to prevent
-          // unresponsive states after returning to app
-          if (pageVisible === true)
-            this.handleUARTTX(event)
-        });
+        this.state.rover.getDevice().addEventListener('gattserverdisconnected', this.handleRoverDisconnect);
+        this.state.rover.startTxNotifications(this.handleRoverTX);
         this.setState({ ...this.state, isConnected: true, isConnecting: false });
       })
       .catch(error => {
