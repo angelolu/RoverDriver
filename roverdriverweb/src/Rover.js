@@ -2,7 +2,6 @@ class Rover {
 
   constructor() {
     this.device = null;
-    this.onDisconnected = this.onDisconnected.bind(this);
     this.enc = new TextEncoder();
   }
 
@@ -17,7 +16,7 @@ class Rover {
     return navigator.bluetooth.requestDevice(options)
       .then(device => {
         this.device = device;
-        this.device.addEventListener('gattserverdisconnected', this.onDisconnected);
+        //this.device.addEventListener('gattserverdisconnected', this.onDisconnected);
       });
   }
 
@@ -40,20 +39,33 @@ class Rover {
     var message = new (data.constructor)(data.length + 1);
     message.set(data, 0);
     message.set([checksum], data.length);
+    console.log("Sending " + message);
     return message;
   }
 
   queueSubject(subject) {
-    var data = new (Uint8Array)(2);
-    data.set(this.enc.encode("!"), 0);
-    data.set([subject], 1);
+    var data = new (Uint8Array)([this.enc.encode("!"), subject]);
+    MessageQueue.enqueue(() => this.writeRX(this.appendChecksum(data)));
+  }
 
+  queueKey(subject, content) {
+    // Set a placeholder byte (0) for where the subject goes
+    let data = this.enc.encode("!0" + content);
+    data.set([subject], 1); // replace the second byte with the subject
     MessageQueue.enqueue(() => this.writeRX(this.appendChecksum(data)));
   }
 
   queueMessage(subject, content) {
-    let data = this.enc.encode("!" + subject + content);
-
+    var dataArray = [this.enc.encode("!"), subject];
+    content = this.enc.encode(content.toString());
+    for (var i = 0; i < content.length; i++) {
+      dataArray.push(content[i]);
+    }    
+    dataArray.push(0x00);
+    console.log(dataArray);
+    //content = this.enc.encode(content);
+    // pad with 0 as a null terminating character
+    var data = new (Uint8Array)(dataArray);
     MessageQueue.enqueue(() => this.writeRX(this.appendChecksum(data)));
   }
 
@@ -95,9 +107,9 @@ class Rover {
     return this.device.gatt.disconnect();
   }
 
-  onDisconnected() {
+  /*onDisconnected() {
     console.log('Device is disconnected.');
-  }
+  }*/
 }
 
 export default Rover;

@@ -33,8 +33,8 @@ class TabSettings extends React.Component {
     }
 
     render() {
-        return <Box justify="center" pad={{ "top": "none", "bottom": "medium", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" fill hoverIndicator={false}>
-            <StyledCard wide title="General">
+        return <Box justify="center" pad={{ "top": "none", "bottom": "small", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" align="stretch" fill hoverIndicator={false}>
+            <StyledCard title="General">
                 <Box pad={{ vertical: 'small' }}>
                     <CheckBox
                         id="check-box-toggle"
@@ -46,7 +46,7 @@ class TabSettings extends React.Component {
                     />
                 </Box>
             </StyledCard>
-            <StyledCard wide title="App Info">
+            <StyledCard title="App Info">
                 <Text>
                     Built at $build_date$
                 </Text>
