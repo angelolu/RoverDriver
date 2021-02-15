@@ -84,15 +84,17 @@ class App extends React.Component {
           break;
         case (38):
           // Up arrow
+          downData = "11";
           break;
         case (40):
           // Down arrow
+          downData = "21";
           break;
         default:
         // console.log("Down: " + event.keyCode);
       }
       if (downData !== "") {
-        this.state.rover.queueMessage("B", downData);
+        this.state.rover.queueKey(0xCA, downData);
       }
     }
   }
@@ -129,7 +131,7 @@ class App extends React.Component {
         // console.log("Down: " + event.keyCode);
       }
       if (upData !== "") {
-        this.state.rover.queueMessage("B", upData);
+        this.state.rover.queueKey(0xCA, upData);
       }
     }
   }
@@ -216,8 +218,10 @@ class App extends React.Component {
   }
 
   disconnectRover() {
-    if (this.state.isConnected === true) this.state.rover.disconnect();
-    this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
+    if (this.state.isConnected === true) {
+      this.state.rover.disconnect();
+      this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
+    }
   }
 
   handleRoverDisconnect = (event) => {
@@ -259,6 +263,11 @@ class App extends React.Component {
           let fieldData = this.addMovingData(message.slice(1), this.state.roverIMU.field);
           // Save data back to state
           this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, field: fieldData } });
+          break;
+        case 0xCE:
+          // Target speed
+          // Parse value as integer, removing subject byte
+          this.setState({ ...this.state, roverState: { ...this.state.roverState, speed: parseInt(String.fromCharCode.apply(null, message.slice(1))) } });
           break;
         default:
           console.log("Unknown Message: " + String.fromCharCode.apply(null, message));
@@ -367,7 +376,7 @@ class App extends React.Component {
           <Box className="box_Content" fill="horizontal" width={{ "max": "1250px" }}>
             <Tabs justify="center" flex>
               <Tab title="Status" icon={<Info />}>
-                <Box justify="center" pad={{ "top": "none", "bottom": "medium", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" align="stretch" fill hoverIndicator={false}>
+                <Box justify="center" pad={{ "top": "none", "bottom": "small", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" align="stretch" fill hoverIndicator={false}>
                   <StyledCard title="System" >
                     <StateBox icon={<Trigger size="medium" />} name="Battery" unit="V" value={this.state.roverState.voltage ? this.state.roverState.voltage : "-"} />
                     <StateBox icon={<Wifi size="medium" />} name="Signal Strength" value={this.state.isConnected ? "Medium" : "-"} />

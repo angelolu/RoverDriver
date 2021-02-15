@@ -9,17 +9,36 @@ export function StateBox(props) {
                 <Text margin="none">
                     {props.name}
                 </Text>
+                {props.children && <Box margin={{ "top": "small", "bottom": "none", "left": "none", "right": "none" }}>{props.children}</Box>}
+                {(props.unit || props.value) &&
+                    <Text weight="bold" level="4" margin="none">
+                        {props.value}{props.unit ? " " + props.unit : ""}
+                    </Text>
+                }
+            </Box>
+        </Box>
+    </>;
+}
+
+export function SettingsBox(props) {
+    return <>
+        <Box  margin={{ "top":"small", "bottom": "small" }}>
+            <Text margin="none">
+                {props.name}
+            </Text>
+            {props.children && <Box align="center" margin={{ "top": "small", "bottom": "none", "left": "none", "right": "none" }}>{props.children}</Box>}
+            {(props.unit || props.value) &&
                 <Text weight="bold" level="4" margin="none">
                     {props.value}{props.unit ? " " + props.unit : ""}
                 </Text>
-            </Box>
+            }
         </Box>
     </>;
 }
 
 export function StyledCard(props) {
     return <>
-        <Card width={props.wide ? { "min": "300px", "max": "500px" } : { "min": "300px", "max": "400px" }} elevation="0" margin="small" background={{ "color": "background-front" }}>
+        <Card className={props.wide ? "wideCard" : "normalCard"} elevation="0" margin="small" background={{ "color": "background-front" }}>
             {props.title && <CardHeader background={{ "color": "background-contrast" }} align="center" direction="row" justify="between" gap="medium" pad={{ "top": "small", "bottom": "small", "left": "medium", "right": "medium" }}>
                 <Text weight="bold">
                     {props.title}

@@ -66,6 +66,9 @@ export const RoverTheme = {
       'accent-3': '#00ABE8',
       'accent-4': '#00873D',
     },
+    "edgeSize": {
+      'small': '8px'
+    },
     "font": {
       "family": "Helvetica"
     },
@@ -190,4 +193,18 @@ export const RoverTheme = {
     "pad": 'small',
     "margin": 'none'
   },
+  "rangeInput": {
+    "track": {
+      "height": '10px',
+      "lower": {
+        "color": 'brand',
+        "opacity": 0.7,
+      },
+      "upper": {
+        "color": 'background-contrast',
+        "opacity": 0.3,
+      },
+    },
+  },
+
 }
