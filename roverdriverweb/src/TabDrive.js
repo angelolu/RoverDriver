@@ -111,7 +111,7 @@ class TabDrive extends React.Component {
                     </Stack>
                 </Box>
             </StyledCard>
-            <StyledCard title="Controls" narrow>
+            <StyledCard title="Keyboard Controls" narrow>
                 <Distribution
                     values={[
                         { value: 50, image: (ls.get('lightMode') || false) ? wasdLight : wasdDark, title: "Move", text: "WASD keys" },
@@ -124,7 +124,7 @@ class TabDrive extends React.Component {
                     width={{ 'max': "375px" }}
                 >
                     {value => (
-                        <Box fill gap="small" justify="center" alignContent="center">
+                        <Box fill gap="small" justify="end" alignContent="center">
                             <Text textAlign="center">{value.title}</Text>
                             <Image src={value.image} />
                         </Box>

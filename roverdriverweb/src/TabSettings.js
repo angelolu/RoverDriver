@@ -48,7 +48,7 @@ class TabSettings extends React.Component {
             </StyledCard>
             <StyledCard title="App Info">
                 <Text>
-                    Built at $build_date$
+                    Build time: BUILD_DATE
                 </Text>
             </StyledCard>
         </Box>;
