@@ -38,13 +38,13 @@ export function SettingsBox(props) {
 
 export function StyledCard(props) {
     return <>
-        <Card className={props.wide ? "wideCard" : "normalCard"} elevation="0" margin="small" background={{ "color": "background-front" }}>
+        <Card className={props.wide ? "wideCard" : "normalCard" } elevation="0" margin="small" background={{ "color": "background-front" }}>
             {props.title && <CardHeader background={{ "color": "background-contrast" }} align="center" direction="row" justify="between" gap="medium" pad={{ "top": "small", "bottom": "small", "left": "medium", "right": "medium" }}>
                 <Text weight="bold">
                     {props.title}
                 </Text>
             </CardHeader>}
-            {props.children && <CardBody pad={{ "top": "small", "bottom": "small", "left": "medium", "right": "medium" }} >{props.children}</CardBody>}
+            {props.children && <CardBody pad={{ "top": "small", "bottom": "small", "left": "medium", "right": "medium" }} justify={props.centered? "center": "start"}>{props.children}</CardBody>}
             {props.foottext && <CardFooter align="center" direction="row" justify="center" gap="medium" pad={{ "top": "small", "bottom": "small", "left": "medium", "right": "medium" }}>
                 <Heading level="4" textAlign="center" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
                     {props.foottext}

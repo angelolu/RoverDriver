@@ -39,7 +39,7 @@ class Rover {
     var message = new (data.constructor)(data.length + 1);
     message.set(data, 0);
     message.set([checksum], data.length);
-    console.log("Sending " + message);
+    //console.log("Sending " + message);
     return message;
   }
 
