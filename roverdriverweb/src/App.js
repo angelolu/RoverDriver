@@ -147,7 +147,7 @@ class App extends React.Component {
       // Update state when page is visible
       // Warn user if app is currently conntected to a device that messages may have been missed
       if (this.state.isConnected) {
-        this.showNotification("Device updates, warnings and logging are paused while the app is hidden", "status-warning", 5000);
+        this.showNotification("Rover updates, loggings and warnings are paused while the app is hidden", "status-warning", 5000);
         this.state.rover.startTxNotifications(this.handleRoverTX);
       }
     }
