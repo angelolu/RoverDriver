@@ -50,6 +50,9 @@ class TabSettings extends React.Component {
                 <Text>
                     Build time: BUILD_DATE
                 </Text>
+                <Text>
+                    Build hash: BUILD_HASH
+                </Text>
             </StyledCard>
         </Box>;
     }
