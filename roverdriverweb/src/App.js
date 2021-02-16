@@ -82,19 +82,22 @@ class App extends React.Component {
           // D
           downData = "81";
           break;
-        case (38):
+        case (39):
           // Up arrow
           downData = "11";
           break;
-        case (40):
+        case (37):
           // Down arrow
           downData = "21";
           break;
         default:
-        // console.log("Down: " + event.keyCode);
+         console.log("Down: " + event.keyCode);
       }
       if (downData !== "") {
         this.state.rover.queueKey(0xCA, downData);
+      }else if(event.keyCode === 27){
+        // Esc pressed, disable control
+        this.state.rover.queueSubject(0xC0);
       }
     }
   }
