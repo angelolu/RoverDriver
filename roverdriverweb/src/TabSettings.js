@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, CheckBox, Text } from "grommet";
-import { StyledCard } from "./CommonUI";
+import { SettingsGroup, StyledCard } from "./CommonUI";
 import ls from 'local-storage';
 
 class TabSettings extends React.Component {
@@ -9,21 +9,28 @@ class TabSettings extends React.Component {
         super(props);
         this.state = {
             lightMode: false,
+            vibrate: false
         };
         this.handleChange = this.handleChange.bind(this);
     }
 
     componentDidMount() {
+        console.log(ls.get('vibrate'));
         this.setState({
-            lightMode: ls.get('lightMode') || false
+            lightMode: ls.get('lightMode') || false,
+            vibrate: ls.get('vibrate') !== null ? ls.get('vibrate') : true
         });
     }
 
     handleChange(event) {
         switch (event.target.id) {
-            case "check-box-toggle":
+            case "checkbox-LightMode":
                 this.setState({ ...this.state, lightMode: event.target.checked });
                 ls.set('lightMode', event.target.checked);
+                break;
+            case "checkbox-Vibrate":
+                this.setState({ ...this.state, vibrate: event.target.checked });
+                ls.set('vibrate', event.target.checked);
                 break;
 
             default:
@@ -35,16 +42,32 @@ class TabSettings extends React.Component {
     render() {
         return <Box justify="center" pad={{ "top": "none", "bottom": "small", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" align="stretch" fill hoverIndicator={false}>
             <StyledCard title="General">
-                <Box pad={{ vertical: 'small' }}>
-                    <CheckBox
-                        id="check-box-toggle"
-                        name="toggle"
-                        label="Light Mode"
-                        onChange={this.handleChange}
-                        checked={this.state.lightMode}
-                        toggle
-                    />
-                </Box>
+                <SettingsGroup name="Appearance">
+                    <Box pad={{ 'bottom': 'small' }} width="100%">
+                        <CheckBox
+                            id="checkbox-LightMode"
+                            name="toggle"
+                            label="Light mode"
+                            onChange={this.handleChange}
+                            checked={this.state.lightMode}
+                            toggle
+                            reverse
+                        />
+                    </Box>
+                </SettingsGroup>
+                <SettingsGroup name="Remote Control">
+                    <Box pad={{ 'bottom': 'small' }} width="100%">
+                        <CheckBox
+                            id="checkbox-Vibrate"
+                            name="toggle"
+                            label="D-Pad feedback vibration"
+                            onChange={this.handleChange}
+                            checked={this.state.vibrate}
+                            toggle
+                            reverse
+                        />
+                    </Box>
+                </SettingsGroup>
             </StyledCard>
             <StyledCard title="App Info" centered>
                 <Text>

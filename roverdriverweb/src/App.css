@@ -49,3 +49,13 @@
   background-repeat: no-repeat;
   background-size: cover;
 }
+
+label[for|="checkbox"] {
+  justify-content: space-between;
+  width: auto;
+}
+
+.btouch{
+  touch-action: none;
+
+}

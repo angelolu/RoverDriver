@@ -6,12 +6,12 @@ export function StateBox(props) {
         <Box align="center" justify="start" direction="row" margin={{ "bottom": "small" }}>
             {props.icon}
             <Box align="start" margin={{ "left": "medium" }}>
-                <Text margin="none">
+                <Heading level={5} margin="none">
                     {props.name}
-                </Text>
+                </Heading>
                 {props.children && <Box margin={{ "top": "small", "bottom": "none", "left": "none", "right": "none" }}>{props.children}</Box>}
                 {(props.unit || props.value) &&
-                    <Text weight="bold" level="4" margin="none">
+                    <Text margin="none">
                         {props.value}{props.unit ? " " + props.unit : ""}
                     </Text>
                 }
@@ -20,13 +20,13 @@ export function StateBox(props) {
     </>;
 }
 
-export function SettingsBox(props) {
+export function SettingsGroup(props) {
     return <>
-        <Box  margin={{ "top":"small", "bottom": "small" }}>
-            <Text margin="none">
+        <Box margin={{ "bottom": "small" }}>
+            <Heading level={5} margin="none">
                 {props.name}
-            </Text>
-            {props.children && <Box align="center" margin={{ "top": "small", "bottom": "none", "left": "none", "right": "none" }}>{props.children}</Box>}
+            </Heading>
+            {props.children && <Box align="start" margin={{ "top": "small", "bottom": "none", "left": "small", "right": "none" }}>{props.children}</Box>}
             {(props.unit || props.value) &&
                 <Text weight="bold" level="4" margin="none">
                     {props.value}{props.unit ? " " + props.unit : ""}
@@ -38,13 +38,13 @@ export function SettingsBox(props) {
 
 export function StyledCard(props) {
     return <>
-        <Card className={props.wide ? "wideCard" : "normalCard" } elevation="0" margin="small" background={{ "color": "background-front" }}>
+        <Card className={props.wide ? "wideCard" : "normalCard"} elevation="0" margin="small" background={{ "color": "background-front" }}>
             {props.title && <CardHeader background={{ "color": "background-contrast" }} align="center" direction="row" justify="between" gap="medium" pad={{ "top": "small", "bottom": "small", "left": "medium", "right": "medium" }}>
                 <Text weight="bold">
                     {props.title}
                 </Text>
             </CardHeader>}
-            {props.children && <CardBody pad={{ "top": "small", "bottom": "small", "left": "medium", "right": "medium" }} justify={props.centered? "center": "start"}>{props.children}</CardBody>}
+            {props.children && <CardBody pad={{ "top": "small", "bottom": "small", "left": "medium", "right": "medium" }} justify={props.centered ? "center" : "start"}>{props.children}</CardBody>}
             {props.foottext && <CardFooter align="center" direction="row" justify="center" gap="medium" pad={{ "top": "small", "bottom": "small", "left": "medium", "right": "medium" }}>
                 <Heading level="4" textAlign="center" margin={{ "top": "xsmall", "bottom": "xsmall" }}>
                     {props.foottext}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Collapsible, Box, Diagram, Stack, Button, RangeInput, Image, Distribution, Text, Table, TableHeader, TableRow, TableCell, TableBody, ResponsiveContext } from "grommet";
-import { SettingsBox, StyledCard } from "./CommonUI";
+import { SettingsGroup, StyledCard } from "./CommonUI";
 import { Trigger, Halt, Power, Add, Subtract, CaretUp, CaretDown, CaretNext, CaretPrevious } from 'grommet-icons'
 import ls from 'local-storage'
 
@@ -41,7 +41,6 @@ class TabDrive extends React.Component {
 
     handleSpeedChange(speed) {
         if (this.props.isConnected === true) {
-            console.log("Setting to " + speed);
             if (speed < 1) {
                 speed = 1;
             } else if (speed > 10) {
@@ -51,9 +50,12 @@ class TabDrive extends React.Component {
         }
     }
 
-    handleDPad = (event, keycode) => {
-        event.preventDefault();
+    handleDPad = (event, keycode, preventDefault = true) => {
+        if(preventDefault) event.preventDefault();
         this.props.rover.queueKey(0xCA, keycode);
+        if(parseInt(keycode) % 10 === 1 && (ls.get('vibrate') !== null ? ls.get('vibrate') : true)) {
+            window.navigator.vibrate(5);
+        };
     }
 
     render() {
@@ -67,6 +69,7 @@ class TabDrive extends React.Component {
                             <Button
                                 plain={false}
                                 disabled={this.props.roverState.status !== 2}
+                                className="btouch"
                                 icon={<CaretUp color="brand" />}
                                 onClick={() => {
                                     //props.setValue(props.value - 1);
@@ -74,7 +77,7 @@ class TabDrive extends React.Component {
                                 onMouseDown={(event) => this.handleDPad(event, "51")}
                                 onMouseUp={(event) => this.handleDPad(event, "50")}
                                 onMouseLeave={(event) => this.handleDPad(event, "50")}
-                                onTouchStart={(event) => this.handleDPad(event, "51")}
+                                onTouchStart={(event) => this.handleDPad(event, "51", false)}
                                 onTouchEnd={(event) => this.handleDPad(event, "50")}
                             />
                         </Box>
@@ -82,6 +85,7 @@ class TabDrive extends React.Component {
                             <Button
                                 plain={false}
                                 disabled={this.props.roverState.status !== 2}
+                                className="btouch"
                                 icon={<CaretPrevious color="brand" />}
                                 onClick={() => {
                                     //props.setValue(props.value - 1);
@@ -89,7 +93,7 @@ class TabDrive extends React.Component {
                                 onMouseDown={(event) => this.handleDPad(event, "71")}
                                 onMouseUp={(event) => this.handleDPad(event, "70")}
                                 onMouseLeave={(event) => this.handleDPad(event, "70")}
-                                onTouchStart={(event) => this.handleDPad(event, "71")}
+                                onTouchStart={(event) => this.handleDPad(event, "71", false)}
                                 onTouchEnd={(event) => this.handleDPad(event, "70")}
                             />
                             <Button
@@ -100,6 +104,7 @@ class TabDrive extends React.Component {
                             <Button
                                 plain={false}
                                 disabled={this.props.roverState.status !== 2}
+                                className="btouch"
                                 icon={<CaretNext color="brand" />}
                                 onClick={() => {
                                     //props.setValue(props.value - 1);
@@ -107,7 +112,7 @@ class TabDrive extends React.Component {
                                 onMouseDown={(event) => this.handleDPad(event, "81")}
                                 onMouseUp={(event) => this.handleDPad(event, "80")}
                                 onMouseLeave={(event) => this.handleDPad(event, "80")}
-                                onTouchStart={(event) => this.handleDPad(event, "81")}
+                                onTouchStart={(event) => this.handleDPad(event, "81", false)}
                                 onTouchEnd={(event) => this.handleDPad(event, "80")}
                             />
                         </Box>
@@ -115,6 +120,7 @@ class TabDrive extends React.Component {
                             <Button
                                 plain={false}
                                 disabled={this.props.roverState.status !== 2}
+                                className="btouch"
                                 icon={<CaretDown color="brand" />}
                                 onClick={() => {
                                     //props.setValue(props.value - 1);
@@ -122,14 +128,14 @@ class TabDrive extends React.Component {
                                 onMouseDown={(event) => this.handleDPad(event, "61")}
                                 onMouseUp={(event) => this.handleDPad(event, "60") }
                                 onMouseLeave={(event) => this.handleDPad(event, "60")}
-                                onTouchStart={(event) => this.handleDPad(event, "61")}
+                                onTouchStart={(event) => this.handleDPad(event, "61", false)}
                                 onTouchEnd={(event) => this.handleDPad(event, "60")}
                             />
                         </Box>
                     </Box>
-                    <SettingsBox name={"Speed Target: " + (this.props.roverState.speed ? this.props.roverState.speed : "-")}>
+                    <SettingsGroup name={"Speed Target: " + (this.props.roverState.speed ? this.props.roverState.speed : "-")}>
                         <Bounds enable={this.props.roverState.status === 2} value={this.props.roverState.speed} setValue={this.handleSpeedChange} />
-                    </SettingsBox>
+                    </SettingsGroup>
                 </Collapsible>
             </StyledCard>
             <StyledCard title="Controller State" centered wide>

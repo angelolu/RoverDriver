@@ -62,7 +62,6 @@ class Rover {
       dataArray.push(content[i]);
     }    
     dataArray.push(0x00);
-    console.log(dataArray);
     //content = this.enc.encode(content);
     // pad with 0 as a null terminating character
     var data = new (Uint8Array)(dataArray);
@@ -75,7 +74,7 @@ class Rover {
       .then(characteristic => characteristic.writeValue(data))
       .then(() => new Promise(r => setTimeout(() => {
         r();
-    }, 75)))
+    }, 50)))
       .catch(e => {
         if (e.name === "NetworkError") {
           // Consider raising a more immediate alert here
