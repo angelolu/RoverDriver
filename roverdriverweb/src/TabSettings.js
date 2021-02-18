@@ -9,15 +9,16 @@ class TabSettings extends React.Component {
         super(props);
         this.state = {
             lightMode: false,
+            rssi: false,
             vibrate: false
         };
         this.handleChange = this.handleChange.bind(this);
     }
 
     componentDidMount() {
-        console.log(ls.get('vibrate'));
         this.setState({
             lightMode: ls.get('lightMode') || false,
+            rssi: ls.get('rssi') || false,
             vibrate: ls.get('vibrate') !== null ? ls.get('vibrate') : true
         });
     }
@@ -27,6 +28,10 @@ class TabSettings extends React.Component {
             case "checkbox-LightMode":
                 this.setState({ ...this.state, lightMode: event.target.checked });
                 ls.set('lightMode', event.target.checked);
+                break;
+            case "checkbox-RSSI":
+                this.setState({ ...this.state, rssi: event.target.checked });
+                ls.set('rssi', event.target.checked);
                 break;
             case "checkbox-Vibrate":
                 this.setState({ ...this.state, vibrate: event.target.checked });
@@ -50,6 +55,17 @@ class TabSettings extends React.Component {
                             label="Light mode"
                             onChange={this.handleChange}
                             checked={this.state.lightMode}
+                            toggle
+                            reverse
+                        />
+                    </Box>
+                    <Box pad={{ 'bottom': 'small' }} width="100%">
+                        <CheckBox
+                            id="checkbox-RSSI"
+                            name="toggle"
+                            label="Show signal strength in RSSI"
+                            onChange={this.handleChange}
+                            checked={this.state.rssi}
                             toggle
                             reverse
                         />

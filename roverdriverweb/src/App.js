@@ -1,6 +1,6 @@
 import React from 'react'
-import { Grommet, Layer, Box, Header, Heading, Button, Tabs, Tab, ResponsiveContext, Collapsible } from 'grommet'
-import { Connect, StatusGoodSmall, Trigger, Wifi, Info, Gamepad, DocumentTest, Configure, Close } from 'grommet-icons'
+import { Grommet, Layer, Box, Header, Heading, Button, Tabs, Tab, ResponsiveContext, Collapsible, Clock } from 'grommet'
+import { Connect, StatusGoodSmall, Trigger, Wifi, Info, Gamepad, DocumentTest, Configure, Close, Time } from 'grommet-icons'
 import Rover from './Rover'
 import TabSettings from './TabSettings'
 import { RoverTheme } from './theme'
@@ -91,11 +91,11 @@ class App extends React.Component {
           downData = "21";
           break;
         default:
-         console.log("Down: " + event.keyCode);
+          console.log("Down: " + event.keyCode);
       }
       if (downData !== "") {
         this.state.rover.queueKey(0xCA, downData);
-      }else if(event.keyCode === 27){
+      } else if (event.keyCode === 27) {
         // Esc pressed, disable control
         this.state.rover.queueSubject(0xC0);
       }
@@ -190,7 +190,7 @@ class App extends React.Component {
   /*
   Take in CharCode containing three-axis data split by semicolons and
   the array to manipulate. Returns the array of length 20 (
-  corrosponding to about 10 seconds of sensor data) with the new
+  corresponding to about 10 seconds of sensor data at 2Hz) with the new
   item added.
   */
   addMovingData(item, dataSet) {
@@ -246,6 +246,30 @@ class App extends React.Component {
           // Voltage
           this.setState({ ...this.state, roverState: { ...this.state.roverState, voltage: String.fromCharCode.apply(null, message.slice(1)) } });
           break;
+        case 0xA3:
+          // On time
+          // Arduino unsigned long is equivilant to Uint32, little endian... I think?
+          this.setState({ ...this.state, roverState: { ...this.state.roverState, ontime: new Date((new DataView(message.buffer, 0)).getUint32(1, true)).toISOString() } });
+          break;
+        case 0xA4:
+          // RSSI
+          let rssi = (new DataView(message.buffer, 0)).getInt8(1);
+          let rssiString = "";
+          if (rssi > -45) {
+            rssiString = "Excellent";
+          } else if (rssi > -60) {
+            rssiString = "Very Good";
+          } else if (rssi > -75) {
+            rssiString = "Good";
+          } else if (rssi > -90) {
+            rssiString = "Poor";
+          } else {
+            rssiString = "Very Poor";
+          }
+          // Only append RSSI if user set it in settings
+          if (ls.get('rssi') || false) rssiString += " (" + rssi + ")";
+          this.setState({ ...this.state, roverState: { ...this.state.roverState, rssi: rssiString } });
+          break;
         case 0xB1:
           // Accelerometer
           // Parse value, removing subject byte
@@ -270,7 +294,7 @@ class App extends React.Component {
         case 0xCE:
           // Target speed
           // Parse value as integer, removing subject byte
-          this.setState({ ...this.state, roverState: { ...this.state.roverState, speed: parseInt(String.fromCharCode.apply(null, message.slice(1))) } });
+          this.setState({ ...this.state, roverState: { ...this.state.roverState, speed: (new DataView(message.buffer, 0)).getUint8(1) } });
           break;
         default:
           console.log("Unknown Message: " + String.fromCharCode.apply(null, message));
@@ -382,10 +406,13 @@ class App extends React.Component {
                 <Box justify="center" pad={{ "top": "none", "bottom": "small", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" align="stretch" fill hoverIndicator={false}>
                   <StyledCard title="System" >
                     <StateBox icon={<Trigger size="medium" />} name="Battery" unit="V" value={this.state.roverState.voltage ? this.state.roverState.voltage : "-"} />
-                    <StateBox icon={<Wifi size="medium" />} name="Signal Strength" value={this.state.isConnected ? "Medium" : "-"} />
+                    <StateBox icon={<Wifi size="medium" />} name="Signal strength" value={this.state.roverState.rssi ? this.state.roverState.rssi : "-"} />
+                    <StateBox icon={<Time size="medium" />} name="On time" value={!this.state.roverState.ontime && "-"}>
+                      {this.state.roverState.ontime && <Clock type="digital" time={this.state.roverState.ontime} />}
+                    </StateBox>
                   </StyledCard>
                   <StyledCard wide title="Acceleration" foottext={!(this.state.roverIMU.accel) && "waiting for data"}>
-                    {this.state.roverIMU.gyro && (<>
+                    {this.state.roverIMU.accel && (<>
                       <Box align="center" justify="center">
                         <MovingGraph data={this.state.roverIMU.accel} unit="m/s2" />
                       </Box>

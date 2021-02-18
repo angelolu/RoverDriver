@@ -9,7 +9,7 @@ export function StateBox(props) {
                 <Heading level={5} margin="none">
                     {props.name}
                 </Heading>
-                {props.children && <Box margin={{ "top": "small", "bottom": "none", "left": "none", "right": "none" }}>{props.children}</Box>}
+                {props.children && <Box margin="none">{props.children}</Box>}
                 {(props.unit || props.value) &&
                     <Text margin="none">
                         {props.value}{props.unit ? " " + props.unit : ""}
