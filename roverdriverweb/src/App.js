@@ -51,7 +51,20 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    this.setState({ ...this.state, rover: new Rover() }, () => this.handlePreferenceUpdate());
+    let currentTheme = (ls.get('lightMode') || false) ? "light" : "dark";
+
+    this.setState({
+      ...this.state,
+      themeMode: currentTheme,
+      rover: new Rover()
+    }, () => {
+      // This function also updates state and cannot run concurrently without race conditions occuring
+      document.addEventListener("swWaitingForUpdate", event => {
+        this.showNotification("App updates ready", "status-ok", 120000, "Install and reload", () => {
+          if (event.detail.waiting) event.detail.waiting.postMessage({message: 'skipWaiting', type: 'SKIP_WAITING'});
+        })
+      });
+    });
     document.addEventListener(visibilityChange, this.handleVisibilityChange);
     document.addEventListener("keydown", this.handleKeyDown);
     document.addEventListener("keyup", this.handleKeyUp);
@@ -163,14 +176,19 @@ class App extends React.Component {
     this.setState({ ...this.state, themeMode: currentTheme })
   }
 
-  showNotification(message, color, duration) {
+  showNotification(message, color, duration, actiontext = false, actionhandle = false) {
     let notifications = this.state.notifications;
     let key = Date.now();
     let notification = {
       key: key,
       text: message,
       closeHandler: this.handleNotificationDismiss,
-      background: color
+      background: color,
+      actionText: actiontext,
+      actionHandle: (key) => {
+        actionhandle();
+        this.handleNotificationDismiss(key);
+      }
     };
     notifications.push(notification);
     this.setState({ ...this.state, notifications: notifications });
@@ -408,7 +426,7 @@ class App extends React.Component {
         >
           <Box width={{ "max": "1250px" }} gap="small">
             {this.state.notifications.map((notification) =>
-              <StyledNotification key={notification.key} id={notification.key} text={notification.text} onClose={notification.closeHandler} background={notification.background} />
+              <StyledNotification actionHandle={notification.actionHandle} actionText={notification.actionText} key={notification.key} id={notification.key} text={notification.text} onClose={notification.closeHandler} background={notification.background} />
             )}
           </Box>
         </Layer>

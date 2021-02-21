@@ -71,6 +71,10 @@ export function StyledNotification(props) {
         props.onClose(props.id);
     }
 
+    function handleAction(e){
+        props.actionHandle(props.id);
+    }
+
     return (
         <Box
             align="center"
@@ -86,7 +90,8 @@ export function StyledNotification(props) {
             <Text>
                 {props.text}
             </Text>
-            <Button icon={<FormClose />} onClick={handleClick} plain />
+            {props.actionText && props.actionHandle && <Button onClick={handleAction} label={props.actionText} plain />}
+            {props.onClose && <Button icon={<FormClose />} onClick={handleClick} plain />}
         </Box>
     );
 }

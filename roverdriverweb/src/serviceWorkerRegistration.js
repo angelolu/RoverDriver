@@ -30,6 +30,15 @@ export function register(config) {
     }
 
     window.addEventListener('load', () => {
+      var refreshing;
+      // When the user asks to refresh the UI, we'll need to reload the window
+      navigator.serviceWorker.addEventListener('controllerchange', function (event) {
+        if (refreshing) return; // prevent infinite refresh loop when you use "Update on Reload"
+        refreshing = true;
+        console.log('New controller loaded');
+        window.location.reload();
+      });
+
       const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
 
       if (isLocalhost) {
