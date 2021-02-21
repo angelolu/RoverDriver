@@ -60,7 +60,7 @@ class Rover {
     content = this.enc.encode(content.toString());
     for (var i = 0; i < content.length; i++) {
       dataArray.push(content[i]);
-    }    
+    }
     dataArray.push(0x00);
     //content = this.enc.encode(content);
     // pad with 0 as a null terminating character

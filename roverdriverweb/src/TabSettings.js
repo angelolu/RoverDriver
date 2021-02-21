@@ -10,7 +10,8 @@ class TabSettings extends React.Component {
         this.state = {
             lightMode: false,
             rssi: false,
-            vibrate: false
+            vibrate: false,
+            logTableName: false
         };
         this.handleChange = this.handleChange.bind(this);
     }
@@ -19,7 +20,8 @@ class TabSettings extends React.Component {
         this.setState({
             lightMode: ls.get('lightMode') || false,
             rssi: ls.get('rssi') || false,
-            vibrate: ls.get('vibrate') !== null ? ls.get('vibrate') : true
+            vibrate: ls.get('vibrate') !== null ? ls.get('vibrate') : true,
+            logTableName: ls.get('logTableName') || false
         });
     }
 
@@ -37,7 +39,10 @@ class TabSettings extends React.Component {
                 this.setState({ ...this.state, vibrate: event.target.checked });
                 ls.set('vibrate', event.target.checked);
                 break;
-
+            case "checkbox-LogTableName":
+                this.setState({ ...this.state, logTableName: event.target.checked });
+                ls.set('logTableName', event.target.checked);
+                break;
             default:
                 console.log(event.target.id + " not handled");
         }
@@ -79,6 +84,19 @@ class TabSettings extends React.Component {
                             label="D-Pad feedback vibration"
                             onChange={this.handleChange}
                             checked={this.state.vibrate}
+                            toggle
+                            reverse
+                        />
+                    </Box>
+                </SettingsGroup>
+                <SettingsGroup name="Debug">
+                    <Box pad={{ 'bottom': 'small' }} width="100%">
+                        <CheckBox
+                            id="checkbox-LogTableName"
+                            name="toggle"
+                            label="Show log table names"
+                            onChange={this.handleChange}
+                            checked={this.state.logTableName}
                             toggle
                             reverse
                         />

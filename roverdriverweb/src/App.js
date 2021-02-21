@@ -8,6 +8,8 @@ import { StateBox, MovingGraph, StyledCard, StyledNotification } from './CommonU
 import './App.css';
 import ls from 'local-storage'
 import TabDrive from './TabDrive'
+import TabLog from './TabLog'
+import { LogFileService } from "./storage_service/logfile_service";
 
 const testingFunction = false;
 
@@ -34,7 +36,8 @@ class App extends React.Component {
       isConnected: false,
       isConnecting: false,
       roverState: {},
-      roverIMU: {}
+      roverIMU: {},
+      logging: false
     };
     this.handleConnectClick = this.handleConnectClick.bind(this);
     this.handleDisconnectClick = this.handleDisconnectClick.bind(this);
@@ -43,6 +46,8 @@ class App extends React.Component {
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handlePreferenceUpdate = this.handlePreferenceUpdate.bind(this);
+    this.startLogging = this.startLogging.bind(this);
+    this.stopLogging = this.stopLogging.bind(this);
   }
 
   componentDidMount() {
@@ -61,9 +66,9 @@ class App extends React.Component {
   }
 
   handleKeyDown = (event) => {
-    event.preventDefault();
-    event.stopPropagation();
     if (event.repeat !== true && this.state.isConnected && this.state.roverState.status === 2) {
+      event.preventDefault();
+      event.stopPropagation();
       let downData = "";
       switch (event.keyCode) {
         case (87):
@@ -187,6 +192,37 @@ class App extends React.Component {
     this.dismissNotification(key);
   }
 
+  startLogging(tableID, interval, targets) {
+    this.setState({ ...this.state, logging: true }, () => {
+      this.showNotification("Logging started", "status-ok", 3000);
+    });
+    this.LogFileService = new LogFileService(tableID);
+    this.loggingID = window.setInterval(() => {
+      // console.log("Log: " + tableID);
+      var snapshot = {};
+      snapshot.timestamp = new Date();
+      snapshot.data = {};
+      // go through each logged item and save the corrosponding data
+      if (targets.accel && this.state.roverIMU && this.state.roverIMU.accel) snapshot.data.accelerometer = this.state.roverIMU.accel[this.state.roverIMU.accel.length - 1];
+      if (targets.gyro && this.state.roverIMU && this.state.roverIMU.gyro) snapshot.data.gyroscope = this.state.roverIMU.gyro[this.state.roverIMU.gyro.length - 1];
+      if (targets.magnet && this.state.roverIMU && this.state.roverIMU.field) snapshot.data.magnetometer = this.state.roverIMU.field[this.state.roverIMU.field.length - 1];
+      if (targets.stats && this.state.roverState && this.state.roverState.voltage) snapshot.data.voltage = this.state.roverState.voltage;
+      this.LogFileService.addLogRow(snapshot)
+        .catch(exception => {
+          console.log(exception);
+          this.showNotification(exception.message, "status-critical", 3000)
+        });
+    }, interval);
+  }
+
+  stopLogging() {
+    if (this.loggingID) {
+      clearInterval(this.loggingID);
+      this.setState({ ...this.state, logging: false }, () => {
+        this.showNotification("Logging stopped", "status-critical", 3000);
+      });
+    }
+  }
   /*
   Take in CharCode containing three-axis data split by semicolons and
   the array to manipulate. Returns the array of length 20 (
@@ -222,8 +258,17 @@ class App extends React.Component {
 
   disconnectRover() {
     if (this.state.isConnected === true) {
-      this.state.rover.disconnect();
+      try {
+        this.state.rover.disconnect();
+      } catch (exception) {
+        this.showNotification(exception.message, "status-critical", 5000);
+        console.log(exception);
+      }
+
       this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
+    }
+    if (this.state.logging === true) {
+      this.stopLogging();
     }
   }
 
@@ -385,7 +430,7 @@ class App extends React.Component {
                     <Collapsible direction="vertical" open={this.state.isConnected}>
                       <Box align="end" justify="center" direction="column">
                         <Heading level="3" margin="none" textAlign="start">
-                          {this.state.isConnected ? this.state.rover.getDevice().name : "-"}
+                          {this.state.isConnected ? this.state.rover.getDevice().name : "-"} {this.state.logging && " [logging]"}
                         </Heading>
                         <Heading level="4" margin="none" textAlign="start">
                           {statusMessage}
@@ -437,7 +482,9 @@ class App extends React.Component {
               <Tab title="Drive" icon={<Gamepad />} >
                 <TabDrive rover={this.state.rover} isConnected={this.state.isConnected} roverState={this.state.roverState} />
               </Tab>
-              <Tab title="Log" icon={<DocumentTest />} />
+              <Tab title="Log" plain={false} disabled={false} icon={<DocumentTest />}>
+                <TabLog isConnected={this.state.isConnected} roverState={this.state.roverState} isLogging={this.state.logging} startLogging={this.startLogging} stopLogging={this.stopLogging} />
+              </Tab>
               <Tab title="Settings" plain={false} disabled={false} icon={<Configure />}>
                 <TabSettings onPreferenceUpdate={this.handlePreferenceUpdate} />
               </Tab>
