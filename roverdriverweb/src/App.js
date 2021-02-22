@@ -61,7 +61,7 @@ class App extends React.Component {
       // This function also updates state and cannot run concurrently without race conditions occuring
       document.addEventListener("swWaitingForUpdate", event => {
         this.showNotification("App updates ready", "status-ok", 120000, "Install and reload", () => {
-          if (event.detail.waiting) event.detail.waiting.postMessage({message: 'skipWaiting', type: 'SKIP_WAITING'});
+          if (event.detail.waiting) event.detail.waiting.postMessage({ message: 'skipWaiting', type: 'SKIP_WAITING' });
         })
       });
     });
@@ -161,12 +161,14 @@ class App extends React.Component {
     if (document[hidden]) {
       // Update state when page is not visible
       if (this.state.isConnected) this.state.rover.stopTxNotifications(this.handleRoverTX);
+      if (this.state.logging) this.stopLogging(true); // pause logging
     } else {
       // Update state when page is visible
       // Warn user if app is currently conntected to a device that messages may have been missed
       if (this.state.isConnected) {
         this.showNotification("Rover updates, loggings and warnings are paused while the app is hidden", "status-warning", 5000);
         this.state.rover.startTxNotifications(this.handleRoverTX);
+        if (this.state.logging) this.startLogging(this.state.logging.tableID, this.state.logging.interval, this.state.logging.targets, true); // pause logging
       }
     }
   }
@@ -210,8 +212,15 @@ class App extends React.Component {
     this.dismissNotification(key);
   }
 
-  startLogging(tableID, interval, targets) {
-    this.setState({ ...this.state, logging: true }, () => {
+  startLogging(tableID, interval, targets, restartFromPaused = false) {
+    // set logging flag if this isn't a restart from a temporary pause
+    if (!restartFromPaused) this.setState({
+      ...this.state, logging: {
+        tableID: tableID,
+        interval: interval,
+        targets: targets
+      }
+    }, () => {
       this.showNotification("Logging started", "status-ok", 3000);
     });
     this.LogFileService = new LogFileService(tableID);
@@ -233,12 +242,14 @@ class App extends React.Component {
     }, interval);
   }
 
-  stopLogging() {
+  stopLogging(restartFromPaused = false) {
     if (this.loggingID) {
       clearInterval(this.loggingID);
-      this.setState({ ...this.state, logging: false }, () => {
+      // set logging flag if this isn't a temporary pause
+      if (!restartFromPaused) this.setState({ ...this.state, logging: false }, () => {
         this.showNotification("Logging stopped", "status-critical", 3000);
       });
+      this.loggingID = null;
     }
   }
   /*
@@ -283,10 +294,10 @@ class App extends React.Component {
         console.log(exception);
       }
 
-      this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
-    }
-    if (this.state.logging === true) {
-      this.stopLogging();
+      this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} }, () => {
+        // If we are logging, stop it. This also does a setState so should occur after the initial setState
+        if (this.state.logging) this.stopLogging();
+      });
     }
   }
 

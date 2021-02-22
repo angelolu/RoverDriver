@@ -20,6 +20,7 @@ class TabLog extends React.Component {
         };
         this.handleChange = this.handleChange.bind(this);
         this.handleStartLogging = this.handleStartLogging.bind(this);
+        this.handleStopLogging = this.handleStopLogging.bind(this);
     }
 
     componentDidMount() {
@@ -64,6 +65,11 @@ class TabLog extends React.Component {
             alert(ex.message);
             console.error(ex);
         }
+    }
+
+    handleStopLogging(event){
+        event.preventDefault();
+        this.props.stopLogging();
     }
 
     render() {
@@ -139,7 +145,7 @@ class TabLog extends React.Component {
                     Logging will pause if the screen is off or if the app is hidden
                 </Text>
                 {!this.props.isLogging && <Button margin={{ "top": "small", "bottom": "small", "left": "none", "right": "none" }} label="Start Logging" color="brand" onClick={this.handleStartLogging} disabled={!this.props.isConnected} icon={<Play />} primary />}
-                {this.props.isLogging && <Button margin={{ "top": "small", "bottom": "small", "left": "none", "right": "none" }} label="Stop Logging" color="status-critical" onClick={this.props.stopLogging} icon={<Stop />} primary />}
+                {this.props.isLogging && <Button margin={{ "top": "small", "bottom": "small", "left": "none", "right": "none" }} label="Stop Logging" color="status-critical" onClick={this.handleStopLogging} icon={<Stop />} primary />}
             </StyledCard>
             <StyledCard title="Captured Logs" wide>
                 <LogList isLogging={this.props.isLogging} />
