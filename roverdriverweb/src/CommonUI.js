@@ -58,9 +58,9 @@ export function MovingGraph(props) {
     if (props.data)
         return <>
             <Text>
-                X: {props.data[props.data.length - 1]["X"]}, Y: {props.data[props.data.length - 1]["Y"]}, Z: {props.data[props.data.length - 1]["Z"]} [{props.unit}]
+                X: {props.data[props.data.length - 1]["X"].toFixed(2)}, Y: {props.data[props.data.length - 1]["Y"].toFixed(2)}, Z: {props.data[props.data.length - 1]["Z"].toFixed(2)} [{props.unit}]
                         </Text>
-            <DataChart axis={{ "x": { "granularity": "coarse" }, "y": { "granularity": "medium" } }} chart={[{ "property": "X", "type": "line", "thickness": "xxsmall", "dash": false, "round": false, "color": "accent-4" }, { "property": "Y", "type": "line", "color": "accent-3", "thickness": "xxsmall", "round": false }, { "property": "Z", "type": "line", "color": "accent-2", "thickness": "xxsmall", "round": false }]} data={props.data} guide={{ "x": { "granularity": "fine" }, "y": { "granularity": "medium" } }} series={[{ "property": "time", "label": "Time" }, { "property": "X", "label": "X" }, { "property": "Y", "label": "Y" }, { "property": "Z", "label": "Z" }]} size={{ "width": "medium", "height": "150px" }} detail={false} legend />
+            <DataChart axis={{ "x": { "granularity": "coarse" }, "y": { "granularity": "medium" } }} chart={[{ "property": "X", "type": "line", "thickness": "xxsmall", "dash": false, "round": false, "color": "accent-4" }, { "property": "Y", "type": "line", "color": "accent-3", "thickness": "xxsmall", "round": false }, { "property": "Z", "type": "line", "color": "accent-2", "thickness": "xxsmall", "round": false }]} data={props.data} guide={{ "x": { "granularity": "medium" }, "y": { "granularity": "medium" } }} series={[{ "property": "time", "label": "Time" }, { "property": "X", "label": "X" }, { "property": "Y", "label": "Y" }, { "property": "Z", "label": "Z" }]} size={{ "width": "medium", "height": "150px" }} detail={false} legend />
         </>;
     return <></>;
 }
@@ -71,7 +71,7 @@ export function StyledNotification(props) {
         props.onClose(props.id);
     }
 
-    function handleAction(e){
+    function handleAction(e) {
         props.actionHandle(props.id);
     }
 

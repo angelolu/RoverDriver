@@ -259,20 +259,20 @@ class App extends React.Component {
   item added.
   */
   addMovingData(item, dataSet) {
-    let itemValues = String.fromCharCode.apply(null, item).split(";");
-    if (itemValues.length === 3) {
+    if (item.length === 13) {
       let currentTime = new Date().toLocaleTimeString();
+      let incomingItem = new DataView(item.buffer, 0);
       // Check if dataSet already has items
       if (dataSet !== undefined) {
-        // Trim dataSet if it already has 19 items (will be 20 items after append)
-        if (dataSet.length > (19)) dataSet.shift();
+        // Trim dataSet if it already has 39 items (will be 40 items after append)
+        if (dataSet.length > (39)) dataSet.shift();
       } else {
-        // Create an array of 19 items with zeros just to fill up the
+        // Create an array of 39 items with zeros just to fill up the
         // chart on first render
-        dataSet = Array(19).fill({ "time": currentTime, "X": 0, "Y": 0, "Z": 0 });
+        dataSet = Array(40).fill({ "time": currentTime, "X": 0.0, "Y": 0.0, "Z": 0.0 });
       }
       // Save new item coordinates
-      dataSet.push({ "time": currentTime, "X": parseFloat(itemValues[0]), "Y": parseFloat(itemValues[1]), "Z": parseFloat(itemValues[2]) });
+      dataSet.push({ "time": currentTime, "X": incomingItem.getFloat32(1, true), "Y": incomingItem.getFloat32(5, true), "Z": incomingItem.getFloat32(9, true) });
     } else {
       console.log("Invalid number of coordinates recieved");
     }
@@ -329,7 +329,9 @@ class App extends React.Component {
           // RSSI
           let rssi = (new DataView(message.buffer, 0)).getInt8(1);
           let rssiString = "";
-          if (rssi > -45) {
+          if (rssi === 0) {
+            rssiString = "Unknown";
+          } else if (rssi > -45) {
             rssiString = "Excellent";
           } else if (rssi > -60) {
             rssiString = "Very Good";
@@ -347,21 +349,21 @@ class App extends React.Component {
         case 0xB1:
           // Accelerometer
           // Parse value, removing subject byte
-          let accelData = this.addMovingData(message.slice(1), this.state.roverIMU.accel);
+          let accelData = this.addMovingData(message, this.state.roverIMU.accel);
           // Save data back to state
           this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, accel: accelData } });
           break;
         case 0xB2:
           // Gyroscope
           // Parse value, removing subject byte
-          let gyroData = this.addMovingData(message.slice(1), this.state.roverIMU.gyro);
+          let gyroData = this.addMovingData(message, this.state.roverIMU.gyro);
           // Save data back to state
           this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, gyro: gyroData } });
           break;
         case 0xB3:
           // Magnetometer
           // Parse value, removing subject byte
-          let fieldData = this.addMovingData(message.slice(1), this.state.roverIMU.field);
+          let fieldData = this.addMovingData(message, this.state.roverIMU.field);
           // Save data back to state
           this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, field: fieldData } });
           break;
@@ -502,7 +504,7 @@ class App extends React.Component {
                   <StyledCard wide title="Magnetic field" foottext={!(this.state.roverIMU.field) && "waiting for data"}>
                     {this.state.roverIMU.field && (<>
                       <Box align="center" justify="center">
-                        <MovingGraph data={this.state.roverIMU.field} unit="G" />
+                        <MovingGraph data={this.state.roverIMU.field} unit="uT" />
                       </Box>
                     </>)}
                   </StyledCard>
