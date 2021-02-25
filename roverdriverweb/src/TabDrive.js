@@ -1,5 +1,5 @@
 import React from 'react';
-import { Collapsible, Box, Diagram, Stack, Button, RangeInput, Image, Distribution, Text, Table, TableHeader, TableRow, TableCell, TableBody, ResponsiveContext } from "grommet";
+import { Collapsible, Box, Diagram, Stack, Button, RangeInput, Image, Distribution, Text, Table, TableHeader, TableRow, TableCell, TableBody, ResponsiveContext, Heading } from "grommet";
 import { SettingsGroup, StyledCard } from "./CommonUI";
 import { Trigger, Halt, Power, Add, Subtract, CaretUp, CaretDown, CaretNext, CaretPrevious } from 'grommet-icons'
 import ls from 'local-storage'
@@ -51,18 +51,19 @@ class TabDrive extends React.Component {
     }
 
     handleDPad = (event, keycode, preventDefault = true) => {
-        if(preventDefault) event.preventDefault();
+        if (preventDefault) event.preventDefault();
         this.props.rover.queueKey(0xCA, keycode);
-        if(parseInt(keycode) % 10 === 1 && (ls.get('vibrate') !== null ? ls.get('vibrate') : true)) {
+        if (parseInt(keycode) % 10 === 1 && (ls.get('vibrate') !== null ? ls.get('vibrate') : true)) {
             window.navigator.vibrate(5);
         };
     }
 
     render() {
         return <Box justify="center" pad={{ "top": "none", "bottom": "small", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" align="stretch" fill hoverIndicator={false}>
-            <StyledCard title="Remote Control" centered max>
+            <StyledCard title="Remote Control" max>
                 {this.props.roverState.status !== 0x02 && <Button margin={{ "top": "small", "bottom": "small", "left": "none", "right": "none" }} label="Start Control" color={this.props.roverState.status ? "brand" : "status-unknown"} disabled={this.props.roverState.status ? false : true} onClick={this.handleDriveStart} icon={<Power />} primary />}
                 {this.props.roverState.status === 0x02 && <Button margin={{ "top": "small", "bottom": "small", "left": "none", "right": "none" }} label="STOP MOTORS" color="status-critical" onClick={this.handleDriveStop} icon={<Halt />} primary />}
+                <Heading alignSelf="center" level={6} margin="none">Keyboard controls {this.props.roverState.status === 0x02 ? "available" : "disabled"}</Heading>
                 <Collapsible direction="vertical" open={this.props.roverState.status === 2}>
                     <Box align="center" justify="around" margin={{ "top": "small", "bottom": "small" }} direction="column" gap="small">
                         <Box direction="row">
@@ -126,7 +127,7 @@ class TabDrive extends React.Component {
                                     //props.setValue(props.value - 1);
                                 }}
                                 onMouseDown={(event) => this.handleDPad(event, "61")}
-                                onMouseUp={(event) => this.handleDPad(event, "60") }
+                                onMouseUp={(event) => this.handleDPad(event, "60")}
                                 onMouseLeave={(event) => this.handleDPad(event, "60")}
                                 onTouchStart={(event) => this.handleDPad(event, "61", false)}
                                 onTouchEnd={(event) => this.handleDPad(event, "60")}

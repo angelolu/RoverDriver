@@ -1,10 +1,11 @@
 import React from 'react';
-import { Box, CheckBox, Text, Button, Collapsible } from "grommet";
+import { Box, CheckBox, Text, Button, Collapsible, Select } from "grommet";
 import { SettingsGroup, StyledCard } from "./CommonUI";
 import { Play, Stop } from 'grommet-icons'
 import { LogList } from './LoggingUI';
 import { LogIndexService } from "./storage_service/logindex_service";
 import { v4 as uuidv4 } from 'uuid';
+import ls from 'local-storage'
 
 class TabLog extends React.Component {
 
@@ -16,38 +17,58 @@ class TabLog extends React.Component {
             accel: true,
             gyro: false,
             magnet: false,
-            motor: true
+            motor: true,
+            frequency: "5 Hz"
         };
         this.handleChange = this.handleChange.bind(this);
+        this.handleSelection = this.handleSelection.bind(this);
         this.handleStartLogging = this.handleStartLogging.bind(this);
         this.handleStopLogging = this.handleStopLogging.bind(this);
     }
 
     componentDidMount() {
-
+        this.setState({
+            stats: ls.get('log-stats') || false,
+            accel: ls.get('log-accel') || false,
+            gyro: ls.get('log-gyro') || false,
+            magnet: ls.get('log-magnet') || false,
+            motor: ls.get('log-motor') || false,
+            frequency: ls.get('log-frequency') !== null ? ls.get('log-frequency') : "5 Hz"
+        });
     }
 
     handleChange(event) {
         switch (event.target.id) {
             case "checkbox-stats":
                 this.setState({ ...this.state, stats: event.target.checked });
+                ls.set('log-stats', event.target.checked);
                 break;
             case "checkbox-Accel":
                 this.setState({ ...this.state, accel: event.target.checked });
+                ls.set('log-accel', event.target.checked);
                 break;
             case "checkbox-Gyro":
                 this.setState({ ...this.state, gyro: event.target.checked });
+                ls.set('log-gyro', event.target.checked);
                 break;
             case "checkbox-Magnet":
                 this.setState({ ...this.state, magnet: event.target.checked });
+                ls.set('log-magnet', event.target.checked);
                 break;
             case "checkbox-Motor":
                 this.setState({ ...this.state, motor: event.target.checked });
+                ls.set('log-motor', event.target.checked);
                 break;
 
             default:
                 console.log(event.target.id + " not handled");
         }
+    }
+
+    handleSelection(event) {
+        console.log(event.value);
+        this.setState({ ...this.state, frequency: event.value });
+        ls.set('log-frequency', event.value);
     }
 
     async handleStartLogging(event) {
@@ -57,9 +78,35 @@ class TabLog extends React.Component {
             date: new Date(),
         }
 
+        // Determine logging frequency selection
+        var interval;
+        switch (this.state.frequency) {
+            case "10 Hz":
+                interval = 100;
+                break;
+            case "5 Hz":
+                interval = 200;
+                break;
+            case "4 Hz":
+                interval = 250;
+                break;
+            case "2 Hz":
+                interval = 500;
+                break;
+            case "1 Hz":
+                interval = 1000;
+                break;
+            case "0.5 Hz":
+                interval = 2000;
+                break;
+            default:
+                interval = 500;
+                console.log("Unknown logging interval, defaulting to 500 ms");
+        }
+        console.log("interval:" + interval);
         try {
             this.service.addLogFile(newFile)
-                .then(() => this.props.startLogging(newFile.tableName, 1000 / 2, this.state));
+                .then(() => this.props.startLogging(newFile.tableName, interval, this.state));
         }
         catch (ex) {
             alert(ex.message);
@@ -67,7 +114,7 @@ class TabLog extends React.Component {
         }
     }
 
-    handleStopLogging(event){
+    handleStopLogging(event) {
         event.preventDefault();
         this.props.stopLogging();
     }
@@ -138,7 +185,12 @@ class TabLog extends React.Component {
                         </Box>
                     </SettingsGroup>
                     <SettingsGroup name="Logging Frequency">
-                        <Text>2 Hz</Text>
+                        <Select
+                            alignSelf="center"
+                            options={['10 Hz', '5 Hz', '4 Hz', '2 Hz', '1 Hz', '0.5 Hz']}
+                            value={this.state.frequency}
+                            onChange={this.handleSelection}
+                        />
                     </SettingsGroup>
                 </Collapsible>
                 <Text>
