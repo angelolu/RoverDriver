@@ -28,6 +28,7 @@ if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and 
 class App extends React.Component {
 
   _roverIMU = {}; // Fast updating IMU data
+  _screenWakeLock;
 
   constructor(props) {
     super(props);
@@ -78,6 +79,32 @@ class App extends React.Component {
     document.removeEventListener(visibilityChange, this.handleVisibilityChange);
     document.removeEventListener("keydown", this.handleKeyDown);
     document.removeEventListener("keyup", () => this.handleKeyUp);
+  }
+
+  async acquireWakeLock(forceReaquire = false) {
+    // acquire a new wake lock if the api is supported, the setting is true (or not set) and there is not one already
+    // the final "no duplicates" condition can be overriden using forceReaquire (ie. if returning to tab)
+    if ('wakeLock' in navigator && (ls.get('screenOn') !== null ? ls.get('screenOn') : true) && (!(this._screenWakeLock) || forceReaquire)) {
+      // console.log('Acquiring new wake lock');
+      try {
+        this._screenWakeLock = await navigator.wakeLock.request('screen');
+      } catch (err) {
+        // The Wake Lock request has failed - usually system related, such as battery.
+        console.log(err);
+      }
+    } else {
+      // console.log('Wake lock is not supported by this browser, setting is disabled or already running.');
+    }
+  }
+
+  releaseWakeLock(forceRelease = false) {
+    // Release the wake lock if (we are not logging or controlling) OR (forceRelease == true)
+    // forceRelease can be set if the rover has been disconnected
+    if (this._screenWakeLock && ((!(this.state.logging) && this.state.roverState.status !== 2) || forceRelease)) this._screenWakeLock.release()
+      .then(() => {
+        // console.log("Wake lock released");
+        this._screenWakeLock = null;
+      });
   }
 
   handleKeyDown = (event) => {
@@ -167,12 +194,17 @@ class App extends React.Component {
       if (this.updateInterval) clearInterval(this.updateInterval);
     } else {
       // Update state when page is visible
-      // Warn user if app is currently conntected to a device that messages may have been missed
       if (this.state.isConnected) {
+        // Warn user if app is currently conntected to a device that messages may have been missed
         this.showNotification("Rover updates, loggings and warnings are paused while the app is hidden", "status-warning", 5000);
+        // Restart rover BLE tx notifications
         this.state.rover.startTxNotifications(this.handleRoverTX);
-        if (this.state.logging) this.startLogging(this.state.logging.tableID, this.state.logging.interval, this.state.logging.targets, true); // pause logging
+        // Restart logging if previously logging
+        if (this.state.logging) this.startLogging(this.state.logging.tableID, this.state.logging.interval, this.state.logging.targets, true);
+        // Start UI updates for real-time data
         this.updateInterval = setInterval(this.intervalUpdateState, 500);
+        // Reacquiring a wake lock if enabled
+        if (this._screenWakeLock !== null) this.acquireWakeLock(true);
       }
     }
   }
@@ -218,15 +250,18 @@ class App extends React.Component {
 
   startLogging(tableID, interval, targets, restartFromPaused = false) {
     // set logging flag if this isn't a restart from a temporary pause
-    if (!restartFromPaused) this.setState({
-      ...this.state, logging: {
-        tableID: tableID,
-        interval: interval,
-        targets: targets
-      }
-    }, () => {
-      this.showNotification("Logging started", "status-ok", 3000);
-    });
+    if (!restartFromPaused) {
+      this.acquireWakeLock();
+      this.setState({
+        ...this.state, logging: {
+          tableID: tableID,
+          interval: interval,
+          targets: targets
+        }
+      }, () => {
+        this.showNotification("Logging started", "status-ok", 3000);
+      });
+    }
     this.LogFileService = new LogFileService(tableID);
     this.loggingID = window.setInterval(() => {
       // console.log("Log: " + tableID);
@@ -251,6 +286,7 @@ class App extends React.Component {
       clearInterval(this.loggingID);
       // set logging flag if this isn't a temporary pause
       if (!restartFromPaused) this.setState({ ...this.state, logging: false }, () => {
+        this.releaseWakeLock();
         this.showNotification("Logging stopped", "status-critical", 3000);
       });
       this.loggingID = null;
@@ -297,17 +333,16 @@ class App extends React.Component {
         this.showNotification(exception.message, "status-critical", 5000);
         console.log(exception);
       }
-
-      this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} }, () => {
-        // If we are logging, stop it. This also does a setState so should occur after the initial setState
-        if (this.state.logging) this.stopLogging();
-      });
     }
   }
 
   handleRoverDisconnect = (event) => {
     this.showNotification("Rover connection lost", "status-critical", 5000);
-    this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
+    this.releaseWakeLock(true);
+    this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} }, () => {
+      // If we are logging, stop it. This also does a setState so should occur after the initial setState
+      if (this.state.logging) this.stopLogging();
+    });
     if (this.updateInterval) clearInterval(this.updateInterval);
   }
 
@@ -329,10 +364,12 @@ class App extends React.Component {
             case 0x01:
               statusColor = "status-warning";
               statusMessage = "READY - STAND CLEAR";
+              this.releaseWakeLock();
               break;
             case 0x02:
               statusColor = "status-critical";
               statusMessage = "MOTORS ON - DO NOT APPROACH";
+              this.acquireWakeLock();
               break;
             default:
               statusColor = "status-unknown";

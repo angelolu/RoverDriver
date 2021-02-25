@@ -66,7 +66,6 @@ class TabLog extends React.Component {
     }
 
     handleSelection(event) {
-        console.log(event.value);
         this.setState({ ...this.state, frequency: event.value });
         ls.set('log-frequency', event.value);
     }
@@ -103,7 +102,6 @@ class TabLog extends React.Component {
                 interval = 500;
                 console.log("Unknown logging interval, defaulting to 500 ms");
         }
-        console.log("interval:" + interval);
         try {
             this.service.addLogFile(newFile)
                 .then(() => this.props.startLogging(newFile.tableName, interval, this.state));

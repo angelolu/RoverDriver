@@ -3,6 +3,12 @@ import { Box, CheckBox, Text } from "grommet";
 import { SettingsGroup, StyledCard } from "./CommonUI";
 import ls from 'local-storage';
 
+var wakeLockSupported;
+if ('wakeLock' in navigator) {
+    wakeLockSupported = true;
+} else {
+    wakeLockSupported = false;
+}
 class TabSettings extends React.Component {
 
     constructor(props) {
@@ -11,17 +17,21 @@ class TabSettings extends React.Component {
             lightMode: false,
             rssi: false,
             vibrate: false,
-            logTableName: false
+            logTableName: false,
+            screenOn: false,
+            screenOnChanged: false
         };
         this.handleChange = this.handleChange.bind(this);
     }
 
     componentDidMount() {
         this.setState({
+            ...this.state,
             lightMode: ls.get('lightMode') || false,
             rssi: ls.get('rssi') || false,
             vibrate: ls.get('vibrate') !== null ? ls.get('vibrate') : true,
-            logTableName: ls.get('logTableName') || false
+            logTableName: ls.get('logTableName') || false,
+            screenOn: ls.get('screenOn') !== null ? ls.get('screenOn') : true,
         });
     }
 
@@ -42,6 +52,10 @@ class TabSettings extends React.Component {
             case "checkbox-LogTableName":
                 this.setState({ ...this.state, logTableName: event.target.checked });
                 ls.set('logTableName', event.target.checked);
+                break;
+            case "checkbox-screenOn":
+                this.setState({ ...this.state, screenOn: event.target.checked, screenOnChanged: true });
+                ls.set('screenOn', event.target.checked);
                 break;
             default:
                 console.log(event.target.id + " not handled");
@@ -75,6 +89,20 @@ class TabSettings extends React.Component {
                             reverse
                         />
                     </Box>
+                    <Box pad={{ 'bottom': 'small' }} width="100%">
+                        <CheckBox
+                            id="checkbox-screenOn"
+                            name="toggle"
+                            label="Keep screen on while controlling or logging"
+                            onChange={this.handleChange}
+                            checked={wakeLockSupported? this.state.screenOn: false}
+                            disabled={!wakeLockSupported}
+                            toggle
+                            reverse
+                        />
+                        {!wakeLockSupported && <Text size="xsmall" margin="none">*not supported by this browser</Text>}
+                        {this.state.screenOnChanged && <Text size="xsmall" margin="none">*setting will take effect on the next connection</Text>}
+                    </Box>
                 </SettingsGroup>
                 <SettingsGroup name="Remote Control">
                     <Box pad={{ 'bottom': 'small' }} width="100%">
@@ -87,6 +115,7 @@ class TabSettings extends React.Component {
                             toggle
                             reverse
                         />
+                        <Text size="xsmall" margin="none">*supported devices only</Text>
                     </Box>
                 </SettingsGroup>
                 <SettingsGroup name="Debug">
@@ -104,12 +133,9 @@ class TabSettings extends React.Component {
                 </SettingsGroup>
             </StyledCard>
             <StyledCard title="App Info" centered>
-                <Text>
-                    Build time: BUILD_DATE
-                </Text>
-                <Text>
-                    Build hash: BUILD_HASH
-                </Text>
+                <Text margin={{ 'bottom': 'small' }}>App built by Team 07 - MECH 462 at Queen's University for the Canadian Space Agency</Text>
+                <Text>Build time: BUILD_DATE</Text>
+                <Text>Build hash: BUILD_HASH</Text>
             </StyledCard>
         </Box>;
     }
