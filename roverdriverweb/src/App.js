@@ -27,6 +27,8 @@ if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and 
 
 class App extends React.Component {
 
+  _roverIMU = {}; // Fast updating IMU data
+
   constructor(props) {
     super(props);
     this.state = {
@@ -162,6 +164,7 @@ class App extends React.Component {
       // Update state when page is not visible
       if (this.state.isConnected) this.state.rover.stopTxNotifications(this.handleRoverTX);
       if (this.state.logging) this.stopLogging(true); // pause logging
+      if (this.updateInterval) clearInterval(this.updateInterval);
     } else {
       // Update state when page is visible
       // Warn user if app is currently conntected to a device that messages may have been missed
@@ -169,6 +172,7 @@ class App extends React.Component {
         this.showNotification("Rover updates, loggings and warnings are paused while the app is hidden", "status-warning", 5000);
         this.state.rover.startTxNotifications(this.handleRoverTX);
         if (this.state.logging) this.startLogging(this.state.logging.tableID, this.state.logging.interval, this.state.logging.targets, true); // pause logging
+        this.updateInterval = setInterval(this.intervalUpdateState, 500);
       }
     }
   }
@@ -230,9 +234,9 @@ class App extends React.Component {
       snapshot.timestamp = new Date();
       snapshot.data = {};
       // go through each logged item and save the corrosponding data
-      if (targets.accel && this.state.roverIMU && this.state.roverIMU.accel) snapshot.data.accelerometer = this.state.roverIMU.accel[this.state.roverIMU.accel.length - 1];
-      if (targets.gyro && this.state.roverIMU && this.state.roverIMU.gyro) snapshot.data.gyroscope = this.state.roverIMU.gyro[this.state.roverIMU.gyro.length - 1];
-      if (targets.magnet && this.state.roverIMU && this.state.roverIMU.field) snapshot.data.magnetometer = this.state.roverIMU.field[this.state.roverIMU.field.length - 1];
+      if (targets.accel && this._roverIMU && this._roverIMU.accel) snapshot.data.accelerometer = this._roverIMU.accel[this._roverIMU.accel.length - 1];
+      if (targets.gyro && this._roverIMU && this._roverIMU.gyro) snapshot.data.gyroscope = this._roverIMU.gyro[this._roverIMU.gyro.length - 1];
+      if (targets.magnet && this._roverIMU && this._roverIMU.field) snapshot.data.magnetometer = this._roverIMU.field[this._roverIMU.field.length - 1];
       if (targets.stats && this.state.roverState && this.state.roverState.voltage) snapshot.data.voltage = this.state.roverState.voltage;
       this.LogFileService.addLogRow(snapshot)
         .catch(exception => {
@@ -265,11 +269,11 @@ class App extends React.Component {
       // Check if dataSet already has items
       if (dataSet !== undefined) {
         // Trim dataSet if it already has 39 items (will be 40 items after append)
-        if (dataSet.length > (39)) dataSet.shift();
+        if (dataSet.length > (99)) dataSet.shift();
       } else {
         // Create an array of 39 items with zeros just to fill up the
         // chart on first render
-        dataSet = Array(40).fill({ "time": currentTime, "X": 0.0, "Y": 0.0, "Z": 0.0 });
+        dataSet = Array(99).fill({ "time": currentTime, "X": 0.0, "Y": 0.0, "Z": 0.0 });
       }
       // Save new item coordinates
       dataSet.push({ "time": currentTime, "X": incomingItem.getFloat32(1, true), "Y": incomingItem.getFloat32(5, true), "Z": incomingItem.getFloat32(9, true) });
@@ -304,6 +308,7 @@ class App extends React.Component {
   handleRoverDisconnect = (event) => {
     this.showNotification("Rover connection lost", "status-critical", 5000);
     this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} });
+    if (this.updateInterval) clearInterval(this.updateInterval);
   }
 
   handleRoverTX = (event) => {
@@ -314,7 +319,34 @@ class App extends React.Component {
       switch (message[0]) {
         case 0xA1:
           // Status
-          this.setState({ ...this.state, roverState: { ...this.state.roverState, status: message[1] } });
+          let statusColor;
+          let statusMessage;
+          switch (message[1]) {
+            case 0x00:
+              statusColor = "status-ok";
+              statusMessage = "IDLE - SAFE TO APPROACH";
+              break;
+            case 0x01:
+              statusColor = "status-warning";
+              statusMessage = "READY - STAND CLEAR";
+              break;
+            case 0x02:
+              statusColor = "status-critical";
+              statusMessage = "MOTORS ON - DO NOT APPROACH";
+              break;
+            default:
+              statusColor = "status-unknown";
+              statusMessage = "UNKNOWN";
+              break;
+          }
+          this.setState({
+            ...this.state, roverState: {
+              ...this.state.roverState,
+              status: message[1],
+              statusColor: statusColor,
+              statusMessage: statusMessage
+            }
+          });
           break;
         case 0xA2:
           // Voltage
@@ -349,23 +381,23 @@ class App extends React.Component {
         case 0xB1:
           // Accelerometer
           // Parse value, removing subject byte
-          let accelData = this.addMovingData(message, this.state.roverIMU.accel);
+          let accelData = this.addMovingData(message, this._roverIMU.accel);
           // Save data back to state
-          this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, accel: accelData } });
+          this._roverIMU = { ...this._roverIMU, accel: accelData };
           break;
         case 0xB2:
           // Gyroscope
           // Parse value, removing subject byte
-          let gyroData = this.addMovingData(message, this.state.roverIMU.gyro);
+          let gyroData = this.addMovingData(message, this._roverIMU.gyro);
           // Save data back to state
-          this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, gyro: gyroData } });
+          this._roverIMU = { ...this._roverIMU, gyro: gyroData };
           break;
         case 0xB3:
           // Magnetometer
           // Parse value, removing subject byte
-          let fieldData = this.addMovingData(message, this.state.roverIMU.field);
+          let fieldData = this.addMovingData(message, this._roverIMU.field);
           // Save data back to state
-          this.setState({ ...this.state, roverIMU: { ...this.state.roverIMU, field: fieldData } });
+          this._roverIMU = { ...this._roverIMU, field: fieldData };
           break;
         case 0xCE:
           // Target speed
@@ -378,6 +410,13 @@ class App extends React.Component {
     }
   }
 
+  intervalUpdateState = () => {
+    // Update state of rapidly changing data by deep copying
+    this.setState({
+      ...this.state, roverIMU: JSON.parse(JSON.stringify(this._roverIMU))
+    });
+  }
+
   handleConnectClick(e) {
     e.preventDefault();
     this.setState({ ...this.state, isConnecting: true });
@@ -388,6 +427,7 @@ class App extends React.Component {
         this.state.rover.getDevice().addEventListener('gattserverdisconnected', this.handleRoverDisconnect);
         this.state.rover.startTxNotifications(this.handleRoverTX);
         this.setState({ ...this.state, isConnected: true, isConnecting: false });
+        this.updateInterval = setInterval(this.intervalUpdateState, 500);
       })
       .catch(error => {
         console.log(error.name);
@@ -406,27 +446,6 @@ class App extends React.Component {
   }
 
   render() {
-    let statusColor = "status-unknown";
-    let statusMessage = "UNKNOWN";
-    switch (this.state.roverState.status) {
-      case 0:
-        statusColor = "status-ok";
-        statusMessage = "IDLE - SAFE TO APPROACH";
-        break;
-      case 1:
-        statusColor = "status-warning";
-        statusMessage = "READY - STAND CLEAR";
-        break;
-      case 2:
-        statusColor = "status-critical";
-        statusMessage = "MOTORS ON - DO NOT APPROACH";
-        break;
-      default:
-        statusColor = "status-unknown";
-        statusMessage = "UNKNOWN";
-        break;
-    }
-
     return (
       <Grommet full theme={RoverTheme} themeMode={this.state.themeMode}>
         <Layer
@@ -464,11 +483,11 @@ class App extends React.Component {
                           {this.state.isConnected ? this.state.rover.getDevice().name : "-"} {this.state.logging && " [logging]"}
                         </Heading>
                         <Heading level="4" margin="none" textAlign="start">
-                          {statusMessage}
+                          {this.state.roverState && this.state.roverState.statusMessage ? this.state.roverState.statusMessage : "UNKNOWN"}
                         </Heading>
                       </Box>
                     </Collapsible>
-                    <StatusGoodSmall color={statusColor} size="large" />
+                    <StatusGoodSmall color={this.state.roverState && this.state.roverState.statusColor ? this.state.roverState.statusColor : "status-unknown"} size="large" />
                   </Box>
 
                 </Box>
