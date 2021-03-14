@@ -339,6 +339,7 @@ class App extends React.Component {
   handleRoverDisconnect = (event) => {
     this.showNotification("Rover connection lost", "status-critical", 5000);
     this.releaseWakeLock(true);
+    this._roverIMU = {};
     this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} }, () => {
       // If we are logging, stop it. This also does a setState so should occur after the initial setState
       if (this.state.logging) this.stopLogging();
@@ -387,7 +388,8 @@ class App extends React.Component {
           break;
         case 0xA2:
           // Voltage
-          this.setState({ ...this.state, roverState: { ...this.state.roverState, voltage: String.fromCharCode.apply(null, message.slice(1)) } });
+          let voltage = ((new DataView(message.buffer, 0)).getFloat32(1, true));
+          this.setState({ ...this.state, roverState: { ...this.state.roverState, voltage: voltage } });
           break;
         case 0xA3:
           // On time
@@ -537,7 +539,7 @@ class App extends React.Component {
               <Tab title="Status" icon={<Info />}>
                 <Box justify="center" pad={{ "top": "none", "bottom": "small", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" align="stretch" fill hoverIndicator={false}>
                   <StyledCard title="System" >
-                    <StateBox icon={<Trigger size="medium" />} name="Battery" unit="V" value={this.state.roverState.voltage ? this.state.roverState.voltage : "-"} />
+                    <StateBox icon={<Trigger size="medium" />} name="Battery" error={(this.state.roverState.status && this.state.roverState.voltage !== undefined && this.state.roverState.voltage <= 13.2)? 1 : 0} unit="V" value={this.state.roverState.voltage !== undefined ? (Math.round(this.state.roverState.voltage * 100) / 100).toFixed(2) : "-"} />
                     <StateBox icon={<Wifi size="medium" />} name="Signal strength" value={this.state.roverState.rssi ? this.state.roverState.rssi : "-"} />
                     <StateBox icon={<Time size="medium" />} name="On time" value={!this.state.roverState.ontime && "-"}>
                       {this.state.roverState.ontime && <Clock type="digital" time={this.state.roverState.ontime} />}

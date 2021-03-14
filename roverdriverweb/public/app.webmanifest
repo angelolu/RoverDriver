@@ -1,6 +1,7 @@
 {
   "short_name": "Rover Driver",
   "name": "Rover Driver",
+  "description": "Rover Driver web allows you to control the PEEKbot rover prototype and log sensor data.",
   "icons": [
     {
         "src": "android-chrome-192x192.png",

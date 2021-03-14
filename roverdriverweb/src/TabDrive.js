@@ -61,7 +61,8 @@ class TabDrive extends React.Component {
     render() {
         return <Box justify="center" pad={{ "top": "none", "bottom": "small", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" align="stretch" fill hoverIndicator={false}>
             <StyledCard title="Remote Control" max>
-                {this.props.roverState.status !== 0x02 && <Button margin={{ "top": "small", "bottom": "small", "left": "none", "right": "none" }} label="Start Control" color={this.props.roverState.status ? "brand" : "status-unknown"} disabled={this.props.roverState.status ? false : true} onClick={this.handleDriveStart} icon={<Power />} primary />}
+                {(this.props.roverState.status !== 0x02 && this.props.roverState.status && this.props.roverState.voltage !== undefined && this.props.roverState.voltage <= 13.2) && <Heading alignSelf="center" level={6} margin="none">Battery low! Can't start motor control.</Heading>}
+                {this.props.roverState.status !== 0x02 && <Button margin={{ "top": "small", "bottom": "small", "left": "none", "right": "none" }} label="Start Control" color={this.props.roverState.status ? "brand" : "status-unknown"} disabled={(this.props.roverState.status && this.props.roverState.voltage !== undefined && this.props.roverState.voltage > 13.2) ? false : true} onClick={this.handleDriveStart} icon={<Power />} primary />}
                 {this.props.roverState.status === 0x02 && <Button margin={{ "top": "small", "bottom": "small", "left": "none", "right": "none" }} label="STOP MOTORS" color="status-critical" onClick={this.handleDriveStop} icon={<Halt />} primary />}
                 <Heading alignSelf="center" level={6} margin="none">Keyboard controls {this.props.roverState.status === 0x02 ? "available" : "disabled"}</Heading>
                 <Collapsible direction="vertical" open={this.props.roverState.status === 2}>

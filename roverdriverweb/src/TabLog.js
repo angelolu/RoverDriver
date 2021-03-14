@@ -182,7 +182,7 @@ class TabLog extends React.Component {
                             />
                         </Box>
                     </SettingsGroup>
-                    <SettingsGroup name="Logging Frequency">
+                    <SettingsGroup name="Sampling Frequency">
                         <Select
                             alignSelf="center"
                             options={['10 Hz', '5 Hz', '4 Hz', '2 Hz', '1 Hz', '0.5 Hz']}

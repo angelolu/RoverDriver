@@ -3,7 +3,7 @@ import { FormClose, StatusInfo } from 'grommet-icons'
 
 export function StateBox(props) {
     return <>
-        <Box align="center" justify="start" direction="row" margin={{ "bottom": "small" }}>
+        <Box align="center" background={props.error ? "status-critical" : "none"} justify="start" direction="row" margin={{ "bottom": "small" }}>
             {props.icon}
             <Box align="start" margin={{ "left": "medium" }}>
                 <Heading level={5} margin="none">
