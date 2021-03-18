@@ -181,6 +181,8 @@ void disconnect_callback(BLEDevice central) {
   DEBUG_PRINT("Disconnected event, central: ");
   DEBUG_PRINTLN(central.address());
   if (mainDisconnectCallback) mainDisconnectCallback(0);
+    // Workaround for instability after disconnecting/connecting multiple times
+  NVIC_SystemReset(); // Soft reset system
 }
 
 uint8_t getIncoming() {
