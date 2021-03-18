@@ -7,11 +7,12 @@
 */
 
 #include <Arduino.h>
-#include <bluefruit.h>
 
-#include "roverdriverarduino.h"
+#include "packetParser.h"
+#include "roverConfig.h"
 
 #ifdef BOARD_ADAFRUIT_nRF52832
+#include <bluefruit.h>
 
 // OTA DFU service
 BLEDfu bledfu;
@@ -22,31 +23,41 @@ BLEUart bleuart;
 rover_connect_callback_t mainConnectCallback;
 rover_disconnect_callback_t mainDisconnectCallback;
 
+// Packet buffer
+extern uint8_t packetbuffer[];
+
 // Function prototypes
 void connect_callback(uint16_t conn_handle);
 void disconnect_callback(uint16_t conn_handle, uint8_t reason);
+uint8_t readPacket(BLEUart* ble_uart, uint16_t timeout);
 
 void setupBoard() {
+  pinMode(PIN_LED_FORWARD, OUTPUT);
+  pinMode(PIN_LED_BACK, OUTPUT);
+  pinMode(PIN_LED_LEFT, OUTPUT);
+  pinMode(PIN_LED_RIGHT, OUTPUT);
+
 #ifdef DEBUG
   SERIAL_PORT_CONSOLE.begin(SERIAL_BAUD_CONSOLE);
   while (!SERIAL_PORT_CONSOLE) delay(10);  // for nrf52840 with native usb
   DEBUG_PRINTLN(F("Adafruit Bluefruit52 Rover Simulator"));
   DEBUG_PRINTLN(F("-------------------------------------------"));
 #endif
-
-  pinMode(PIN_LED_FORWARD, OUTPUT);
-  pinMode(PIN_LED_BACK, OUTPUT);
-  pinMode(PIN_LED_LEFT, OUTPUT);
-  pinMode(PIN_LED_RIGHT, OUTPUT);
 }
 
 void startBluetooth() {
+  // Config the peripheral connection with maximum bandwidth
+  // more SRAM required by SoftDevice
+  // Note: All config***() function must be called before begin()
+  Bluefruit.configPrphBandwidth(BANDWIDTH_MAX);
+
   Bluefruit.begin();
   Bluefruit.setTxPower(4);  // Check bluefruit.h for supported values
-  Bluefruit.setName("rover-0001");
+  Bluefruit.setName(PERIPHERAL_NAME);
 
   Bluefruit.Periph.setConnectCallback(connect_callback);
   Bluefruit.Periph.setDisconnectCallback(disconnect_callback);
+
   // To be consistent OTA DFU should be added first if it exists
   bledfu.begin();
 
@@ -134,6 +145,65 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason) {
   (void)conn_handle;
   (void)reason;
   if (mainDisconnectCallback) mainDisconnectCallback(reason);
+}
+
+/**************************************************************************/
+/*!
+    @brief  Waits for incoming data and parses it
+*/
+/**************************************************************************/
+uint8_t readPacket(BLEUart* ble_uart, uint16_t timeout) {
+  uint16_t origtimeout = timeout, replyidx = 0;
+
+  memset(packetbuffer, 0, READ_BUFSIZE);
+
+  while (timeout--) {
+    if (replyidx >= 20) break;
+    if (((packetbuffer[1] == RX_STOP) && (replyidx == RX_STOP_LEN)) ||
+        ((packetbuffer[1] == RX_CONTROL) && (replyidx == RX_CONTROL_LEN)) ||
+        ((packetbuffer[1] == RX_KEY) && (replyidx == RX_KEY_LEN)) ||
+        ((packetbuffer[1] == RX_SPEED_SET) && (replyidx == RX_SPEED_SET_LEN)))
+      break;
+
+    while (ble_uart->available()) {
+      char c = ble_uart->read();
+      if (c == '!') {
+        replyidx = 0;
+      }
+      packetbuffer[replyidx] = c;
+      replyidx++;
+      timeout = origtimeout;
+    }
+
+    if (timeout == 0) break;
+    delay(1);
+  }
+
+  packetbuffer[replyidx] = 0;  // null term
+
+  if (!replyidx)  // no data or timeout
+    return 0;
+  if (packetbuffer[0] != '!')  // doesn't start with '!' packet beginning
+    return 0;
+
+  // check checksum!
+  uint8_t xsum = 0;
+  uint8_t checksum = packetbuffer[replyidx - 1];
+
+  for (uint8_t i = 0; i < replyidx - 1; i++) {
+    xsum += packetbuffer[i];
+  }
+  xsum = ~xsum;
+
+  // Throw an error message if the checksum's don't match
+  if (xsum != checksum) {
+    DEBUG_PRINT("Checksum mismatch in packet : ");
+    printHex(packetbuffer, replyidx + 1);
+    return 0;
+  }
+
+  // checksum passed!
+  return replyidx;
 }
 
 #endif
