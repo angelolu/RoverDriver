@@ -39,7 +39,8 @@ class TabDrive extends React.Component {
         }
     }
 
-    handleSpeedChange(speed) {
+    handleSpeedChange(event, speed, preventDefault = true) {
+        if (preventDefault) event.preventDefault();
         if (this.props.isConnected === true) {
             if (speed < 1) {
                 speed = 1;
@@ -48,14 +49,19 @@ class TabDrive extends React.Component {
             }
             this.props.rover.queueMessage(0xCE, speed);
         }
+        if (ls.get('vibrate') !== null ? ls.get('vibrate') : true) {
+            window.navigator.vibrate(5);
+        };
     }
 
     handleDPad = (event, keycode, preventDefault = true) => {
         if (preventDefault) event.preventDefault();
-        this.props.rover.queueKey(0xCA, keycode);
-        if (parseInt(keycode) % 10 === 1 && (ls.get('vibrate') !== null ? ls.get('vibrate') : true)) {
-            window.navigator.vibrate(5);
-        };
+        if (keycode) {
+            this.props.rover.queueKey(0xCA, keycode);
+            if (parseInt(keycode) % 10 === 1 && (ls.get('vibrate') !== null ? ls.get('vibrate') : true)) {
+                window.navigator.vibrate(5);
+            };
+        }
     }
 
     render() {
@@ -136,7 +142,7 @@ class TabDrive extends React.Component {
                         </Box>
                     </Box>
                     <SettingsGroup name={"Speed Target: " + (this.props.roverState.speed ? this.props.roverState.speed : "-")}>
-                        <Bounds enable={this.props.roverState.status === 2} value={this.props.roverState.speed} setValue={this.handleSpeedChange} />
+                        <Bounds enable={this.props.roverState.status === 2} value={this.props.roverState.speed} setDPad={this.handleDPad} setValue={this.handleSpeedChange} />
                     </SettingsGroup>
                 </Collapsible>
             </StyledCard>
@@ -311,32 +317,45 @@ const Bounds = (props) => {
     return (
         <Box direction="row" align="center" gap="small">
             <Button
+                className="btouch"
                 plain={false}
                 disabled={!props.enable || props.value === undefined || isNaN(props.value) || props.value === 0 || props.value === 1}
                 icon={<Subtract color="brand" />}
                 onClick={() => {
-                    props.setValue(props.value - 1);
+                    //props.setValue(props.value - 1);
                 }}
+                onMouseDown={(event) => props.setDPad(event, "21")}
+                onMouseUp={(event) => props.setDPad(event, false)}
+                onMouseLeave={(event) => props.setDPad(event, false)}
+                onTouchStart={(event) => props.setDPad(event, "21", false)}
+                onTouchEnd={(event) => props.setDPad(event, false)}
             />
             <Box align="center" width="medium">
                 <RangeInput
                     min={1}
                     max={10}
                     step={1}
+                    // This is disabled because it is too jerky/laggy
                     disabled={true || props.value === undefined || isNaN(props.value) || props.value === 0}
                     value={(props.value === undefined || isNaN(props.value) || props.value === 0) ? 5 : props.value}
                     onChange={event => {
-                        props.setValue(parseInt(event.target.value));
+                        props.setValue(false, parseInt(event.target.value), false);
                     }}
                 />
             </Box>
             <Button
+                className="btouch"
                 plain={false}
                 disabled={!props.enable || props.value === undefined || isNaN(props.value) || props.value === 0 || props.value === 10}
                 icon={<Add color="brand" />}
                 onClick={() => {
-                    props.setValue(props.value + 1);
+                    //props.setValue(props.value - 1);
                 }}
+                onMouseDown={(event) => props.setDPad(event, "11")}
+                onMouseUp={(event) => props.setDPad(event, false)}
+                onMouseLeave={(event) => props.setDPad(event, false)}
+                onTouchStart={(event) => props.setDPad(event, "11", false)}
+                onTouchEnd={(event) => props.setDPad(event, false)}
             />
         </Box>
     );
