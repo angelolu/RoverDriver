@@ -150,7 +150,7 @@ class TabDrive extends React.Component {
                 <ResponsiveContext.Consumer>
                     {size => (
                         <Box align="center" justify="around" margin={{ "bottom": "small" }} direction="row" wrap={true}>
-                            <ControllerDiagram isConnected={this.props.isConnected} />
+                            <ControllerDiagram isConnected={this.props.isConnected} roverController={this.props.roverController} />
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -159,66 +159,66 @@ class TabDrive extends React.Component {
                                         {(size !== "small" && size !== "xsmall" && <>
                                             <TableCell scope="col" border="bottom">VIN</TableCell>
                                             <TableCell scope="col" border="bottom">Current</TableCell>
-                                            <TableCell scope="col" border="bottom">Target Speed</TableCell>
-                                            <TableCell scope="col" border="bottom">Speed</TableCell>
+                                            <TableCell scope="col" border="bottom">Target Cycle</TableCell>
+                                            <TableCell scope="col" border="bottom">Cycle</TableCell>
                                         </>)}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     <TableRow>
-                                        <TableCell scope="row" background={this.props.isConnected ? "status-critical" : "none"}>
-                                            <strong>R Front</strong>
+                                        <TableCell scope="row" background={(this.props.roverController.FR && this.props.roverController.FR.error) ? "status-critical" : "none"}>
+                                            <strong>Front R</strong>
                                         </TableCell>
-                                        <TableCell background={this.props.isConnected ? "status-critical" : "none"}>
-                                            <strong>{this.props.isConnected ? "LOW VIN" : "-"}</strong>
+                                        <TableCell background={(this.props.roverController.FR && this.props.roverController.FR.error) ? "status-critical" : "none"}>
+                                            <strong>{this.props.roverController.FR && this.props.roverController.FR.online !== undefined ? (this.props.roverController.FR.online === 1 ? "OK" : "OFFLINE") : "-"}</strong>
                                         </TableCell>
                                         {(size !== "small" && size !== "xsmall" && <>
-                                            <TableCell background={this.props.isConnected ? "status-critical" : "none"}>{this.props.isConnected ? "9.6 V" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "1500 mA" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "0 rpm" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "0 rpm" : "-"}</TableCell>
+                                            <TableCell>{this.props.roverController.FR && this.props.roverController.FR.voltage ? (Math.round(this.props.roverController.FR.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
+                                            <TableCell>{this.props.roverController.FR && this.props.roverController.FR.current ? this.props.roverController.FR.current : "-"} mA</TableCell>
+                                            <TableCell>{this.props.roverController.FR && this.props.roverController.FR.dutyCycleTarget ? this.props.roverController.FR.dutyCycleTarget : "-"}</TableCell>
+                                            <TableCell>{this.props.roverController.FR && this.props.roverController.FR.dutyCycle ? this.props.roverController.FR.dutyCycle : "-"}</TableCell>
                                         </>)}
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell scope="row">
-                                            <strong>L Front</strong>
+                                        <TableCell scope="row" background={(this.props.roverController.FL && this.props.roverController.FL.error) ? "status-critical" : "none"}>
+                                            <strong>Front L</strong>
                                         </TableCell>
-                                        <TableCell>
-                                            <strong>{this.props.isConnected ? "OK" : "-"}</strong>
+                                        <TableCell background={(this.props.roverController.FL && this.props.roverController.FL.error) ? "status-critical" : "none"}>
+                                            <strong>{this.props.roverController.FL && this.props.roverController.FL.online !== undefined ? (this.props.roverController.FL.online === 1 ? "OK" : "OFFLINE") : "-"}</strong>
                                         </TableCell>
                                         {(size !== "small" && size !== "xsmall" && <>
-                                            <TableCell>{this.props.isConnected ? "12.1 V" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "1500 mA" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "0 rpm" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "0 rpm" : "-"}</TableCell>
+                                            <TableCell>{this.props.roverController.FL && this.props.roverController.FL.voltage ? (Math.round(this.props.roverController.FL.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
+                                            <TableCell>{this.props.roverController.FL && this.props.roverController.FL.current ? this.props.roverController.FL.current : "-"} mA</TableCell>
+                                            <TableCell>{this.props.roverController.FL && this.props.roverController.FL.dutyCycleTarget ? this.props.roverController.FL.dutyCycleTarget : "-"}</TableCell>
+                                            <TableCell>{this.props.roverController.FL && this.props.roverController.FL.dutyCycle ? this.props.roverController.FL.dutyCycle : "-"}</TableCell>
                                         </>)}
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell scope="row">
-                                            <strong>R Rear</strong>
+                                        <TableCell scope="row" background={(this.props.roverController.RR && this.props.roverController.RR.error) ? "status-critical" : "none"}>
+                                            <strong>Rear R</strong>
                                         </TableCell>
-                                        <TableCell>
-                                            <strong>{this.props.isConnected ? "OK" : "-"}</strong>
+                                        <TableCell background={(this.props.roverController.RR && this.props.roverController.RR.error) ? "status-critical" : "none"}>
+                                            <strong>{this.props.roverController.RR && this.props.roverController.RR.online !== undefined ? (this.props.roverController.RR.online === 1 ? "OK" : "OFFLINE") : "-"}</strong>
                                         </TableCell>
                                         {(size !== "small" && size !== "xsmall" && <>
-                                            <TableCell>{this.props.isConnected ? "12.1 V" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "1500 mA" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "0 rpm" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "0 rpm" : "-"}</TableCell>
+                                            <TableCell>{this.props.roverController.RR && this.props.roverController.RR.voltage ? (Math.round(this.props.roverController.RR.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
+                                            <TableCell>{this.props.roverController.RR && this.props.roverController.RR.current ? this.props.roverController.RR.current : "-"} mA</TableCell>
+                                            <TableCell>{this.props.roverController.RR && this.props.roverController.RR.dutyCycleTarget ? this.props.roverController.RR.dutyCycleTarget : "-"}</TableCell>
+                                            <TableCell>{this.props.roverController.RR && this.props.roverController.RR.dutyCycle ? this.props.roverController.RR.dutyCycle : "-"}</TableCell>
                                         </>)}
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell scope="row">
-                                            <strong>L Rear</strong>
+                                        <TableCell scope="row" background={(this.props.roverController.RL && this.props.roverController.RL.error) ? "status-critical" : "none"}>
+                                            <strong>Rear L</strong>
                                         </TableCell>
-                                        <TableCell>
-                                            <strong>{this.props.isConnected ? "OK" : "-"}</strong>
+                                        <TableCell background={(this.props.roverController.RL && this.props.roverController.RL.error) ? "status-critical" : "none"}>
+                                            <strong>{this.props.roverController.RL && this.props.roverController.RL.online !== undefined ? (this.props.roverController.RL.online === 1 ? "OK" : "OFFLINE") : "-"}</strong>
                                         </TableCell>
                                         {(size !== "small" && size !== "xsmall" && <>
-                                            <TableCell>{this.props.isConnected ? "12.1 V" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "1500 mA" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "0 rpm" : "-"}</TableCell>
-                                            <TableCell>{this.props.isConnected ? "0 rpm" : "-"}</TableCell>
+                                            <TableCell>{this.props.roverController.RL && this.props.roverController.RL.voltage ? (Math.round(this.props.roverController.RL.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
+                                            <TableCell>{this.props.roverController.RL && this.props.roverController.RL.current ? this.props.roverController.RL.current : "-"} mA</TableCell>
+                                            <TableCell>{this.props.roverController.RL && this.props.roverController.RL.dutyCycleTarget ? this.props.roverController.RL.dutyCycleTarget : "-"}</TableCell>
+                                            <TableCell>{this.props.roverController.RL && this.props.roverController.RL.dutyCycle ? this.props.roverController.RL.dutyCycle : "-"}</TableCell>
                                         </>)}
                                     </TableRow>
                                 </TableBody>
@@ -268,45 +268,45 @@ const ControllerDiagram = (props) => {
                         fromTarget: '1',
                         toTarget: '0',
                         thickness: 'xsmall',
-                        color: props.isConnected ? "accent-4" : "status-unknown",
+                        color: props.roverController.FL && props.roverController.FL.online !== undefined ? (props.roverController.FL.error ? "accent-1" : "accent-4") : "status-unknown",
                         type: 'curved',
                     },
                     {
                         fromTarget: '2',
                         toTarget: '0',
                         thickness: 'xsmall',
-                        color: props.isConnected ? "status-warning" : "status-unknown",
+                        color: props.roverController.FR && props.roverController.FR.online !== undefined ? (props.roverController.FR.error ? "accent-1" : "accent-4") : "status-unknown",
                         type: 'curved',
                     },
                     {
                         fromTarget: '3',
                         toTarget: '0',
                         thickness: 'xsmall',
-                        color: props.isConnected ? "accent-4" : "status-unknown",
+                        color: props.roverController.RL && props.roverController.RL.online !== undefined ? (props.roverController.RL.error ? "accent-1" : "accent-4") : "status-unknown",
                         type: 'curved',
                     },
                     {
                         fromTarget: '4',
                         toTarget: '0',
                         thickness: 'xsmall',
-                        color: props.isConnected ? "accent-4" : "status-unknown",
+                        color: props.roverController.RR && props.roverController.RR.online !== undefined ? (props.roverController.RR.error ? "accent-1" : "accent-4") : "status-unknown",
                         type: 'curved',
                     }
                 ]}
             />
             <Box>
                 <Box direction="row">
-                    <Box id="1" margin="small" pad="medium" background={props.isConnected ? "status-ok" : "status-unknown"} />
+                    <Box id="1" margin="small" pad="medium" background={props.roverController.FL && props.roverController.FL.online !== undefined ? (props.roverController.FL.error ? "status-critical" : "status-ok") : "status-unknown"} />
                     <Box id="5" margin="small" pad="medium" background="none" />
-                    <Box id="2" margin="small" pad="medium" background={props.isConnected ? "status-critical" : "status-unknown"} />
+                    <Box id="2" margin="small" pad="medium" background={props.roverController.FR && props.roverController.FR.online !== undefined ? (props.roverController.FR.error ? "status-critical" : "status-ok") : "status-unknown"} />
                 </Box>
                 <Box direction="row" justify="center">
                     <Box id="0" margin="small" pad="medium" background="#313131"><Trigger size="medium" color={props.isConnected ? "brand" : "status-unknown"} /></Box>
                 </Box>
                 <Box direction="row">
-                    <Box id="3" margin="small" pad="medium" background={props.isConnected ? "status-ok" : "status-unknown"} />
+                    <Box id="3" margin="small" pad="medium" background={props.roverController.RL && props.roverController.RL.online !== undefined ? (props.roverController.RL.error ? "status-critical" : "status-ok") : "status-unknown"} />
                     <Box id="8" margin="small" pad="medium" background="none" />
-                    <Box id="4" margin="small" pad="medium" background={props.isConnected ? "status-ok" : "status-unknown"} />
+                    <Box id="4" margin="small" pad="medium" background={props.roverController.RR && props.roverController.RR.online !== undefined ? (props.roverController.RR.error ? "status-critical" : "status-ok") : "status-unknown"} />
                 </Box>
             </Box>
         </Stack>

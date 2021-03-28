@@ -28,6 +28,11 @@ if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and 
 class App extends React.Component {
 
   _roverIMU = {}; // Fast updating IMU data
+  // motor controller data objects
+  _motorControllerFR = {};
+  _motorControllerFL = {};
+  _motorControllerRR = {};
+  _motorControllerRL = {};
   _screenWakeLock;
 
   constructor(props) {
@@ -40,6 +45,7 @@ class App extends React.Component {
       isConnecting: false,
       roverState: {},
       roverIMU: {},
+      roverController: {},
       logging: false
     };
     this.handleConnectClick = this.handleConnectClick.bind(this);
@@ -196,7 +202,7 @@ class App extends React.Component {
       // Update state when page is visible
       if (this.state.isConnected) {
         // Warn user if app is currently conntected to a device that messages may have been missed
-        this.showNotification("Rover updates, loggings and warnings are paused while the app is hidden", "status-warning", 5000);
+        this.showNotification("Rover updates and logging are paused while the app is hidden", "status-warning", 5000);
         // Restart rover BLE tx notifications
         this.state.rover.startTxNotifications(this.handleRoverTX);
         // Restart logging if previously logging
@@ -340,7 +346,11 @@ class App extends React.Component {
     this.showNotification("Rover connection lost", "status-critical", 5000);
     this.releaseWakeLock(true);
     this._roverIMU = {};
-    this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {} }, () => {
+    this._motorControllerFL = {};
+    this._motorControllerFR = {};
+    this._motorControllerRR = {};
+    this._motorControllerRL = {};
+    this.setState({ ...this.state, isConnected: false, isConnecting: false, roverState: {}, roverIMU: {}, roverController: {} }, () => {
       // If we are logging, stop it. This also does a setState so should occur after the initial setState
       if (this.state.logging) this.stopLogging();
     });
@@ -443,6 +453,62 @@ class App extends React.Component {
           // Parse value as integer, removing subject byte
           this.setState({ ...this.state, roverState: { ...this.state.roverState, speed: (new DataView(message.buffer, 0)).getUint8(1) } });
           break;
+        case 0xD1:
+          // Front right motor controller status
+          let jrkFR = new DataView(message.buffer, 0);
+          this._motorControllerFR.voltage = jrkFR.getUint16(4, true) / 1000.0;
+          this._motorControllerFR.current = jrkFR.getInt16(6, true);
+          this._motorControllerFR.dutyCycleTarget = jrkFR.getInt16(8, true);
+          this._motorControllerFR.dutyCycle = jrkFR.getInt16(10, true);
+          this._motorControllerFR.feedback = jrkFR.getUint16(12, true);
+          this._motorControllerFR.error = false;
+          this._motorControllerFR.online = jrkFR.getInt8(1, true);
+          if (this._motorControllerFR.online === -1) {
+            this._motorControllerFR.error = true;
+          }
+          break;
+        case 0xD2:
+          // Front left motor controller status
+          let jrkFL = new DataView(message.buffer, 0);
+          this._motorControllerFL.voltage = jrkFL.getUint16(4, true) / 1000.0;
+          this._motorControllerFL.current = jrkFL.getInt16(6, true);
+          this._motorControllerFL.dutyCycleTarget = jrkFL.getInt16(8, true);
+          this._motorControllerFL.dutyCycle = jrkFL.getInt16(10, true);
+          this._motorControllerFL.feedback = jrkFL.getUint16(12, true);
+          this._motorControllerFL.error = false;
+          this._motorControllerFL.online = jrkFL.getInt8(1, true);
+          if (this._motorControllerFL.online === -1) {
+            this._motorControllerFL.error = true;
+          }
+          break;
+        case 0xD3:
+          // Rear right motor controller status
+          let jrkRR = new DataView(message.buffer, 0);
+          this._motorControllerRR.voltage = jrkRR.getUint16(4, true) / 1000.0;
+          this._motorControllerRR.current = jrkRR.getInt16(6, true);
+          this._motorControllerRR.dutyCycleTarget = jrkRR.getInt16(8, true);
+          this._motorControllerRR.dutyCycle = jrkRR.getInt16(10, true);
+          this._motorControllerRR.feedback = jrkRR.getUint16(12, true);
+          this._motorControllerRR.error = false;
+          this._motorControllerRR.online = jrkRR.getInt8(1, true);
+          if (this._motorControllerRR.online === -1) {
+            this._motorControllerRR.error = true;
+          }
+          break;
+        case 0xD4:
+          // Rear left motor controller status
+          let jrkRL = new DataView(message.buffer, 0);
+          this._motorControllerRL.voltage = jrkRL.getUint16(4, true) / 1000.0;
+          this._motorControllerRL.current = jrkRL.getInt16(6, true);
+          this._motorControllerRL.dutyCycleTarget = jrkRL.getInt16(8, true);
+          this._motorControllerRL.dutyCycle = jrkRL.getInt16(10, true);
+          this._motorControllerRL.feedback = jrkRL.getUint16(12, true);
+          this._motorControllerRL.error = false;
+          this._motorControllerRL.online = jrkRL.getInt8(1, true);
+          if (this._motorControllerRL.online === -1) {
+            this._motorControllerRL.error = true;
+          }
+          break;
         default:
           console.log("Unknown Message: " + String.fromCharCode.apply(null, message));
       }
@@ -452,7 +518,14 @@ class App extends React.Component {
   intervalUpdateState = () => {
     // Update state of rapidly changing data by deep copying
     this.setState({
-      ...this.state, roverIMU: JSON.parse(JSON.stringify(this._roverIMU))
+      ...this.state,
+      roverIMU: JSON.parse(JSON.stringify(this._roverIMU)),
+      roverController: {
+        FR: JSON.parse(JSON.stringify(this._motorControllerFR)),
+        FL: JSON.parse(JSON.stringify(this._motorControllerFL)),
+        RR: JSON.parse(JSON.stringify(this._motorControllerRR)),
+        RL: JSON.parse(JSON.stringify(this._motorControllerRL))
+      }
     });
   }
 
@@ -539,7 +612,7 @@ class App extends React.Component {
               <Tab title="Status" icon={<Info />}>
                 <Box justify="center" pad={{ "top": "none", "bottom": "small", "left": "small", "right": "small" }} className="tabContents" animation={{ "type": "fadeIn", "size": "small" }} direction="row" align="stretch" fill hoverIndicator={false}>
                   <StyledCard title="System" >
-                    <StateBox icon={<Trigger size="medium" />} name="Battery" error={(this.state.roverState.status && this.state.roverState.voltage !== undefined && this.state.roverState.voltage <= 13.2)? 1 : 0} unit="V" value={this.state.roverState.voltage !== undefined ? (Math.round(this.state.roverState.voltage * 100) / 100).toFixed(2) : "-"} />
+                    <StateBox icon={<Trigger size="medium" />} name="Battery" error={(this.state.roverState.status && this.state.roverState.voltage !== undefined && this.state.roverState.voltage <= 13.2) ? 1 : 0} unit="V" value={this.state.roverState.voltage !== undefined ? (Math.round(this.state.roverState.voltage * 100) / 100).toFixed(1) : "-"} />
                     <StateBox icon={<Wifi size="medium" />} name="Signal strength" value={this.state.roverState.rssi ? this.state.roverState.rssi : "-"} />
                     <StateBox icon={<Time size="medium" />} name="On time" value={!this.state.roverState.ontime && "-"}>
                       {this.state.roverState.ontime && <Clock type="digital" time={this.state.roverState.ontime} />}
@@ -569,7 +642,7 @@ class App extends React.Component {
                 </Box>
               </Tab>
               <Tab title="Drive" icon={<Gamepad />} >
-                <TabDrive rover={this.state.rover} isConnected={this.state.isConnected} roverState={this.state.roverState} />
+                <TabDrive rover={this.state.rover} isConnected={this.state.isConnected} roverState={this.state.roverState} roverController={this.state.roverController} />
               </Tab>
               <Tab title="Log" plain={false} disabled={false} icon={<DocumentTest />}>
                 <TabLog isConnected={this.state.isConnected} roverState={this.state.roverState} isLogging={this.state.logging} startLogging={this.startLogging} stopLogging={this.stopLogging} />
