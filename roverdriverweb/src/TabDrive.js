@@ -1,7 +1,7 @@
 import React from 'react';
 import { Collapsible, Box, Diagram, Stack, Button, RangeInput, Image, Distribution, Text, Table, TableHeader, TableRow, TableCell, TableBody, ResponsiveContext, Heading } from "grommet";
 import { SettingsGroup, StyledCard } from "./CommonUI";
-import { Trigger, Halt, Power, Add, Subtract, CaretUp, CaretDown, CaretNext, CaretPrevious } from 'grommet-icons'
+import { Trigger, Halt, Power, Add, Subtract, CaretUp, CaretDown, CaretNext, CaretPrevious, StatusCritical } from 'grommet-icons'
 import ls from 'local-storage'
 
 import wasdDark from './wasd-dark.png';
@@ -21,6 +21,7 @@ class TabDrive extends React.Component {
         this.handleDriveStart = this.handleDriveStart.bind(this);
         this.handleDriveStop = this.handleDriveStop.bind(this);
         this.handleSpeedChange = this.handleSpeedChange.bind(this);
+        this.clearControllerError = this.clearControllerError.bind(this);
     }
 
     componentDidMount() {
@@ -62,6 +63,11 @@ class TabDrive extends React.Component {
                 window.navigator.vibrate(5);
             };
         }
+    }
+
+    clearControllerError = (event, keycode) => {
+        event.preventDefault();
+        this.props.rover.queueMessage(keycode, 0x00);
     }
 
     render() {
@@ -151,78 +157,93 @@ class TabDrive extends React.Component {
                     {size => (
                         <Box align="center" justify="around" margin={{ "bottom": "small" }} direction="row" wrap={true}>
                             <ControllerDiagram isConnected={this.props.isConnected} roverController={this.props.roverController} />
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableCell scope="col" border="bottom"></TableCell>
-                                        <TableCell scope="col" border="bottom">Status</TableCell>
-                                        {(size !== "small" && size !== "xsmall" && <>
-                                            <TableCell scope="col" border="bottom">VIN</TableCell>
-                                            <TableCell scope="col" border="bottom">Current</TableCell>
-                                            <TableCell scope="col" border="bottom">Target Cycle</TableCell>
-                                            <TableCell scope="col" border="bottom">Cycle</TableCell>
-                                        </>)}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell scope="row" background={(this.props.roverController.FR && this.props.roverController.FR.error) ? "status-critical" : "none"}>
-                                            <strong>Front R</strong>
-                                        </TableCell>
-                                        <TableCell background={(this.props.roverController.FR && this.props.roverController.FR.error) ? "status-critical" : "none"}>
-                                            <strong>{this.props.roverController.FR && this.props.roverController.FR.online !== undefined ? (this.props.roverController.FR.online === 1 ? "OK" : "OFFLINE") : "-"}</strong>
-                                        </TableCell>
-                                        {(size !== "small" && size !== "xsmall" && <>
-                                            <TableCell>{this.props.roverController.FR && this.props.roverController.FR.voltage ? (Math.round(this.props.roverController.FR.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
-                                            <TableCell>{this.props.roverController.FR && this.props.roverController.FR.current ? this.props.roverController.FR.current : "-"} mA</TableCell>
-                                            <TableCell>{this.props.roverController.FR && this.props.roverController.FR.dutyCycleTarget ? this.props.roverController.FR.dutyCycleTarget : "-"}</TableCell>
-                                            <TableCell>{this.props.roverController.FR && this.props.roverController.FR.dutyCycle ? this.props.roverController.FR.dutyCycle : "-"}</TableCell>
-                                        </>)}
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell scope="row" background={(this.props.roverController.FL && this.props.roverController.FL.error) ? "status-critical" : "none"}>
-                                            <strong>Front L</strong>
-                                        </TableCell>
-                                        <TableCell background={(this.props.roverController.FL && this.props.roverController.FL.error) ? "status-critical" : "none"}>
-                                            <strong>{this.props.roverController.FL && this.props.roverController.FL.online !== undefined ? (this.props.roverController.FL.online === 1 ? "OK" : "OFFLINE") : "-"}</strong>
-                                        </TableCell>
-                                        {(size !== "small" && size !== "xsmall" && <>
-                                            <TableCell>{this.props.roverController.FL && this.props.roverController.FL.voltage ? (Math.round(this.props.roverController.FL.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
-                                            <TableCell>{this.props.roverController.FL && this.props.roverController.FL.current ? this.props.roverController.FL.current : "-"} mA</TableCell>
-                                            <TableCell>{this.props.roverController.FL && this.props.roverController.FL.dutyCycleTarget ? this.props.roverController.FL.dutyCycleTarget : "-"}</TableCell>
-                                            <TableCell>{this.props.roverController.FL && this.props.roverController.FL.dutyCycle ? this.props.roverController.FL.dutyCycle : "-"}</TableCell>
-                                        </>)}
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell scope="row" background={(this.props.roverController.RR && this.props.roverController.RR.error) ? "status-critical" : "none"}>
-                                            <strong>Rear R</strong>
-                                        </TableCell>
-                                        <TableCell background={(this.props.roverController.RR && this.props.roverController.RR.error) ? "status-critical" : "none"}>
-                                            <strong>{this.props.roverController.RR && this.props.roverController.RR.online !== undefined ? (this.props.roverController.RR.online === 1 ? "OK" : "OFFLINE") : "-"}</strong>
-                                        </TableCell>
-                                        {(size !== "small" && size !== "xsmall" && <>
-                                            <TableCell>{this.props.roverController.RR && this.props.roverController.RR.voltage ? (Math.round(this.props.roverController.RR.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
-                                            <TableCell>{this.props.roverController.RR && this.props.roverController.RR.current ? this.props.roverController.RR.current : "-"} mA</TableCell>
-                                            <TableCell>{this.props.roverController.RR && this.props.roverController.RR.dutyCycleTarget ? this.props.roverController.RR.dutyCycleTarget : "-"}</TableCell>
-                                            <TableCell>{this.props.roverController.RR && this.props.roverController.RR.dutyCycle ? this.props.roverController.RR.dutyCycle : "-"}</TableCell>
-                                        </>)}
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell scope="row" background={(this.props.roverController.RL && this.props.roverController.RL.error) ? "status-critical" : "none"}>
-                                            <strong>Rear L</strong>
-                                        </TableCell>
-                                        <TableCell background={(this.props.roverController.RL && this.props.roverController.RL.error) ? "status-critical" : "none"}>
-                                            <strong>{this.props.roverController.RL && this.props.roverController.RL.online !== undefined ? (this.props.roverController.RL.online === 1 ? "OK" : "OFFLINE") : "-"}</strong>
-                                        </TableCell>
-                                        {(size !== "small" && size !== "xsmall" && <>
-                                            <TableCell>{this.props.roverController.RL && this.props.roverController.RL.voltage ? (Math.round(this.props.roverController.RL.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
-                                            <TableCell>{this.props.roverController.RL && this.props.roverController.RL.current ? this.props.roverController.RL.current : "-"} mA</TableCell>
-                                            <TableCell>{this.props.roverController.RL && this.props.roverController.RL.dutyCycleTarget ? this.props.roverController.RL.dutyCycleTarget : "-"}</TableCell>
-                                            <TableCell>{this.props.roverController.RL && this.props.roverController.RL.dutyCycle ? this.props.roverController.RL.dutyCycle : "-"}</TableCell>
-                                        </>)}
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
+                            <Box align="left" justify="around" direction="column" wrap={true}>
+                                {((this.props.roverController.FR && this.props.roverController.FR.error && this.props.roverController.FR.error !== "Offline") ||
+                                    (this.props.roverController.FL && this.props.roverController.FL.error && this.props.roverController.FL.error !== "Offline") ||
+                                    (this.props.roverController.RR && this.props.roverController.RR.error && this.props.roverController.RR.error !== "Offline") ||
+                                    (this.props.roverController.RL && this.props.roverController.RL.error && this.props.roverController.RL.error !== "Offline")
+                                ) && <>
+                                        <Heading level={6} margin="xsmall">Clear halting errors:</Heading>
+                                        <Box align="left" margin={{"botton": "small"}} justify="evenly" direction="row" wrap={true}>
+                                            {this.props.roverController.FR && this.props.roverController.FR.error && this.props.roverController.FR.error !== "Offline" && <Button label="Front R" onClick={(event) => this.clearControllerError(event, 0xD1)} icon={<StatusCritical />} />}
+                                            {this.props.roverController.FL && this.props.roverController.FL.error && this.props.roverController.FL.error !== "Offline" && <Button label="Front L" onClick={(event) => this.clearControllerError(event, 0xD2)} icon={<StatusCritical />} />}
+                                            {this.props.roverController.RR && this.props.roverController.RR.error && this.props.roverController.RR.error !== "Offline" && <Button label="Rear R" onClick={(event) => this.clearControllerError(event, 0xD3)} icon={<StatusCritical />} />}
+                                            {this.props.roverController.RL && this.props.roverController.RL.error && this.props.roverController.RL.error !== "Offline" && <Button label="Rear L" onClick={(event) => this.clearControllerError(event, 0xD4)} icon={<StatusCritical />} />}
+                                        </Box>
+                                    </>}
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableCell scope="col" border="bottom"></TableCell>
+                                            <TableCell scope="col" border="bottom">Status</TableCell>
+                                            {(size !== "small" && size !== "xsmall" && <>
+                                                <TableCell scope="col" border="bottom">VIN</TableCell>
+                                                <TableCell scope="col" border="bottom">Current</TableCell>
+                                                <TableCell scope="col" border="bottom">Target Cycle</TableCell>
+                                                <TableCell scope="col" border="bottom">Cycle</TableCell>
+                                            </>)}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        <TableRow>
+                                            <TableCell scope="row" background={(this.props.roverController.FR && this.props.roverController.FR.error) ? "status-critical" : "none"}>
+                                                <strong>Front R</strong>
+                                            </TableCell>
+                                            <TableCell background={(this.props.roverController.FR && this.props.roverController.FR.error) ? "status-critical" : "none"}>
+                                                <strong>{this.props.roverController.FR ? (this.props.roverController.FR.error ? this.props.roverController.FR.error : "OK") : "-"}</strong>
+                                            </TableCell>
+                                            {(size !== "small" && size !== "xsmall" && <>
+                                                <TableCell>{this.props.roverController.FR && this.props.roverController.FR.voltage ? (Math.round(this.props.roverController.FR.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
+                                                <TableCell>{this.props.roverController.FR && this.props.roverController.FR.current ? this.props.roverController.FR.current : "-"} mA</TableCell>
+                                                <TableCell>{this.props.roverController.FR && this.props.roverController.FR.dutyCycleTarget ? this.props.roverController.FR.dutyCycleTarget : "-"}</TableCell>
+                                                <TableCell>{this.props.roverController.FR && this.props.roverController.FR.dutyCycle ? this.props.roverController.FR.dutyCycle : "-"}</TableCell>
+                                            </>)}
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell scope="row" background={(this.props.roverController.FL && this.props.roverController.FL.error) ? "status-critical" : "none"}>
+                                                <strong>Front L</strong>
+                                            </TableCell>
+                                            <TableCell background={(this.props.roverController.FL && this.props.roverController.FL.error) ? "status-critical" : "none"}>
+                                                <strong>{this.props.roverController.FL ? (this.props.roverController.FL.error ? this.props.roverController.FL.error : "OK") : "-"}</strong>
+                                            </TableCell>
+                                            {(size !== "small" && size !== "xsmall" && <>
+                                                <TableCell>{this.props.roverController.FL && this.props.roverController.FL.voltage ? (Math.round(this.props.roverController.FL.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
+                                                <TableCell>{this.props.roverController.FL && this.props.roverController.FL.current ? this.props.roverController.FL.current : "-"} mA</TableCell>
+                                                <TableCell>{this.props.roverController.FL && this.props.roverController.FL.dutyCycleTarget ? this.props.roverController.FL.dutyCycleTarget : "-"}</TableCell>
+                                                <TableCell>{this.props.roverController.FL && this.props.roverController.FL.dutyCycle ? this.props.roverController.FL.dutyCycle : "-"}</TableCell>
+                                            </>)}
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell scope="row" background={(this.props.roverController.RR && this.props.roverController.RR.error) ? "status-critical" : "none"}>
+                                                <strong>Rear R</strong>
+                                            </TableCell>
+                                            <TableCell background={(this.props.roverController.RR && this.props.roverController.RR.error) ? "status-critical" : "none"}>
+                                                <strong>{this.props.roverController.RR ? (this.props.roverController.RR.error ? this.props.roverController.RR.error : "OK") : "-"}</strong>
+                                            </TableCell>
+                                            {(size !== "small" && size !== "xsmall" && <>
+                                                <TableCell>{this.props.roverController.RR && this.props.roverController.RR.voltage ? (Math.round(this.props.roverController.RR.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
+                                                <TableCell>{this.props.roverController.RR && this.props.roverController.RR.current ? this.props.roverController.RR.current : "-"} mA</TableCell>
+                                                <TableCell>{this.props.roverController.RR && this.props.roverController.RR.dutyCycleTarget ? this.props.roverController.RR.dutyCycleTarget : "-"}</TableCell>
+                                                <TableCell>{this.props.roverController.RR && this.props.roverController.RR.dutyCycle ? this.props.roverController.RR.dutyCycle : "-"}</TableCell>
+                                            </>)}
+                                        </TableRow>
+                                        <TableRow>
+                                            <TableCell scope="row" background={(this.props.roverController.RL && this.props.roverController.RL.error) ? "status-critical" : "none"}>
+                                                <strong>Rear L</strong>
+                                            </TableCell>
+                                            <TableCell background={(this.props.roverController.RL && this.props.roverController.RL.error) ? "status-critical" : "none"}>
+                                                <strong>{this.props.roverController.RL ? (this.props.roverController.RL.error ? this.props.roverController.RL.error : "OK") : "-"}</strong>
+                                            </TableCell>
+                                            {(size !== "small" && size !== "xsmall" && <>
+                                                <TableCell>{this.props.roverController.RL && this.props.roverController.RL.voltage ? (Math.round(this.props.roverController.RL.voltage * 100) / 100).toFixed(1) : "-"} V</TableCell>
+                                                <TableCell>{this.props.roverController.RL && this.props.roverController.RL.current ? this.props.roverController.RL.current : "-"} mA</TableCell>
+                                                <TableCell>{this.props.roverController.RL && this.props.roverController.RL.dutyCycleTarget ? this.props.roverController.RL.dutyCycleTarget : "-"}</TableCell>
+                                                <TableCell>{this.props.roverController.RL && this.props.roverController.RL.dutyCycle ? this.props.roverController.RL.dutyCycle : "-"}</TableCell>
+                                            </>)}
+                                        </TableRow>
+                                    </TableBody>
+                                </Table>
+                            </Box>
                         </Box>
                     )}
 

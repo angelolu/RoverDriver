@@ -357,6 +357,49 @@ class App extends React.Component {
     if (this.updateInterval) clearInterval(this.updateInterval);
   }
 
+  parseMotorControllerStatus(data) {
+    let status = {};
+    status.voltage = data.getUint16(4, true) / 1000.0;
+    status.current = data.getInt16(6, true);
+    status.dutyCycleTarget = data.getInt16(8, true);
+    status.dutyCycle = data.getInt16(10, true);
+    status.feedback = data.getUint16(12, true);
+    status.online = data.getInt8(1, true);
+
+    // If device is offline, that is the only error
+    if (status.online === -1) {
+      status.error = "Offline";
+    } else {
+      // check what error bits are set
+      let jrkErrors = [
+        { byte: 0, bit: 1, error: "Low VIN" },
+        { byte: 0, bit: 2, error: "Motor driver error" },
+        { byte: 0, bit: 3, error: "Invalid input (RC)" },
+        { byte: 0, bit: 4, error: "Input disconnect" },
+        { byte: 0, bit: 5, error: "Feedback disconnected" },
+        { byte: 0, bit: 6, error: "Soft overcurrent" },
+        { byte: 0, bit: 7, error: "Serial signal error" },
+        { byte: 1, bit: 0, error: "Serial overrun" },
+        { byte: 1, bit: 1, error: "Serial RX buffer full" },
+        { byte: 1, bit: 2, error: "Serial CRC error" },
+        { byte: 1, bit: 3, error: "Serial protocol error" },
+        { byte: 1, bit: 4, error: "Serial timeout error" },
+        { byte: 1, bit: 5, error: "Hard overcurrent" },
+      ]
+
+      status.error = "";
+      let errorByte = 2;
+      // generate error string
+      jrkErrors.forEach((error) => {
+        if ((data.getInt8(errorByte + error.byte) & (1 << error.bit)) !== 0)
+          status.error = status.error + ", " + error.error;
+      });
+      if (status.error.charAt(0) === ',')
+        status.error = status.error.slice(2);
+    }
+    return status;
+  }
+
   handleRoverTX = (event) => {
     let message = new Uint8Array(event.target.value.buffer);
     //console.log(">" + String.fromCharCode.apply(null, message));
@@ -456,58 +499,22 @@ class App extends React.Component {
         case 0xD1:
           // Front right motor controller status
           let jrkFR = new DataView(message.buffer, 0);
-          this._motorControllerFR.voltage = jrkFR.getUint16(4, true) / 1000.0;
-          this._motorControllerFR.current = jrkFR.getInt16(6, true);
-          this._motorControllerFR.dutyCycleTarget = jrkFR.getInt16(8, true);
-          this._motorControllerFR.dutyCycle = jrkFR.getInt16(10, true);
-          this._motorControllerFR.feedback = jrkFR.getUint16(12, true);
-          this._motorControllerFR.error = false;
-          this._motorControllerFR.online = jrkFR.getInt8(1, true);
-          if (this._motorControllerFR.online === -1) {
-            this._motorControllerFR.error = true;
-          }
+          this._motorControllerFR = this.parseMotorControllerStatus(jrkFR);
           break;
         case 0xD2:
           // Front left motor controller status
           let jrkFL = new DataView(message.buffer, 0);
-          this._motorControllerFL.voltage = jrkFL.getUint16(4, true) / 1000.0;
-          this._motorControllerFL.current = jrkFL.getInt16(6, true);
-          this._motorControllerFL.dutyCycleTarget = jrkFL.getInt16(8, true);
-          this._motorControllerFL.dutyCycle = jrkFL.getInt16(10, true);
-          this._motorControllerFL.feedback = jrkFL.getUint16(12, true);
-          this._motorControllerFL.error = false;
-          this._motorControllerFL.online = jrkFL.getInt8(1, true);
-          if (this._motorControllerFL.online === -1) {
-            this._motorControllerFL.error = true;
-          }
+          this._motorControllerFL = this.parseMotorControllerStatus(jrkFL);
           break;
         case 0xD3:
           // Rear right motor controller status
           let jrkRR = new DataView(message.buffer, 0);
-          this._motorControllerRR.voltage = jrkRR.getUint16(4, true) / 1000.0;
-          this._motorControllerRR.current = jrkRR.getInt16(6, true);
-          this._motorControllerRR.dutyCycleTarget = jrkRR.getInt16(8, true);
-          this._motorControllerRR.dutyCycle = jrkRR.getInt16(10, true);
-          this._motorControllerRR.feedback = jrkRR.getUint16(12, true);
-          this._motorControllerRR.error = false;
-          this._motorControllerRR.online = jrkRR.getInt8(1, true);
-          if (this._motorControllerRR.online === -1) {
-            this._motorControllerRR.error = true;
-          }
+          this._motorControllerRR = this.parseMotorControllerStatus(jrkRR);
           break;
         case 0xD4:
           // Rear left motor controller status
           let jrkRL = new DataView(message.buffer, 0);
-          this._motorControllerRL.voltage = jrkRL.getUint16(4, true) / 1000.0;
-          this._motorControllerRL.current = jrkRL.getInt16(6, true);
-          this._motorControllerRL.dutyCycleTarget = jrkRL.getInt16(8, true);
-          this._motorControllerRL.dutyCycle = jrkRL.getInt16(10, true);
-          this._motorControllerRL.feedback = jrkRL.getUint16(12, true);
-          this._motorControllerRL.error = false;
-          this._motorControllerRL.online = jrkRL.getInt8(1, true);
-          if (this._motorControllerRL.online === -1) {
-            this._motorControllerRL.error = true;
-          }
+          this._motorControllerRL = this.parseMotorControllerStatus(jrkRL);
           break;
         default:
           console.log("Unknown Message: " + String.fromCharCode.apply(null, message));
@@ -575,7 +582,7 @@ class App extends React.Component {
           </Box>
         </Layer>
         <Box fill="vertical" overflow="auto" align="center" flex="grow">
-          <Header className="appHeader" align="end" justify="center" pad="medium" gap="medium" background={{ "color": "background-contrast" }} fill="horizontal">
+          <Header className="appHeader" align="end" justify="center" pad="medium" gap="medium" background={{ "color": (this.state.roverState.status && this.state.roverState.voltage !== undefined && this.state.roverState.voltage <= 13.2) ? "status-critical" : "background-contrast" }} fill="horizontal">
             <ResponsiveContext.Consumer>
               {size => (
                 <Box className="appHeaderBox" align="center" direction={(size !== "small" && size !== "xsmall") ? "row" : "column-reverse"} flex="grow" justify="between" width={{ "max": "1250px" }} wrap="reverse">
