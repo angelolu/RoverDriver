@@ -10,6 +10,7 @@ import ls from 'local-storage'
 import TabDrive from './TabDrive'
 import TabLog from './TabLog'
 import { LogFileService } from "./storage_service/logfile_service";
+import { Gamepad as GamepadHandler } from 'react-gamepad';
 
 const testingFunction = false;
 
@@ -35,6 +36,11 @@ class App extends React.Component {
   _motorControllerRL = {};
   _screenWakeLock;
 
+  _gamepadUpdated = false;
+  _leftStickX = 0;
+  _leftStickY = 0;
+  _keystate = ["70", "80", "50", "60"];
+
   constructor(props) {
     super(props);
     this.state = {
@@ -57,6 +63,10 @@ class App extends React.Component {
     this.handlePreferenceUpdate = this.handlePreferenceUpdate.bind(this);
     this.startLogging = this.startLogging.bind(this);
     this.stopLogging = this.stopLogging.bind(this);
+    this.gamepadConnectHandler = this.gamepadConnectHandler.bind(this);
+    this.gamepadDisconnectHandler = this.gamepadDisconnectHandler.bind(this);
+    this.gamepadButtonChangeHandler = this.gamepadButtonChangeHandler.bind(this);
+    this.gamepadAxisChangeHandler = this.gamepadAxisChangeHandler.bind(this);
   }
 
   componentDidMount() {
@@ -69,7 +79,7 @@ class App extends React.Component {
     }, () => {
       // This function also updates state and cannot run concurrently without race conditions occuring
       document.addEventListener("swWaitingForUpdate", event => {
-        this.showNotification("App updates ready", "status-ok", 120000, "Install and reload", () => {
+        this.showNotification("App updates ready", "status-ok", 1200000, "Reload now", () => {
           if (event.detail.waiting) event.detail.waiting.postMessage({ message: 'skipWaiting', type: 'SKIP_WAITING' });
         })
       });
@@ -198,6 +208,7 @@ class App extends React.Component {
       if (this.state.isConnected) this.state.rover.stopTxNotifications(this.handleRoverTX);
       if (this.state.logging) this.stopLogging(true); // pause logging
       if (this.updateInterval) clearInterval(this.updateInterval);
+      if (this.gamepadInterval) clearInterval(this.gamepadInterval);
     } else {
       // Update state when page is visible
       if (this.state.isConnected) {
@@ -209,6 +220,7 @@ class App extends React.Component {
         if (this.state.logging) this.startLogging(this.state.logging.tableID, this.state.logging.interval, this.state.logging.targets, true);
         // Start UI updates for real-time data
         this.updateInterval = setInterval(this.intervalUpdateState, 500);
+        this.gamepadInterval = setInterval(this.intervalSendGamepad, 50);
         // Reacquiring a wake lock if enabled
         if (this._screenWakeLock !== null) this.acquireWakeLock(true);
       }
@@ -355,6 +367,7 @@ class App extends React.Component {
       if (this.state.logging) this.stopLogging();
     });
     if (this.updateInterval) clearInterval(this.updateInterval);
+    if (this.gamepadInterval) clearInterval(this.gamepadInterval);
   }
 
   parseMotorControllerStatus(data) {
@@ -547,6 +560,7 @@ class App extends React.Component {
         this.state.rover.startTxNotifications(this.handleRoverTX);
         this.setState({ ...this.state, isConnected: true, isConnecting: false });
         this.updateInterval = setInterval(this.intervalUpdateState, 500);
+        this.gamepadInterval = setInterval(this.intervalSendGamepad, 50);
       })
       .catch(error => {
         console.log(error.name);
@@ -562,6 +576,85 @@ class App extends React.Component {
   handleDisconnectClick(e) {
     e.preventDefault();
     this.disconnectRover();
+  }
+
+  intervalSendGamepad = () => {
+    if (this.state.isConnected && this.state.roverState.status === 2 && this._gamepadUpdated) {
+      this._gamepadUpdated = false;
+      var keys = ["70", "80", "50", "60"]; // left, right, up, down
+
+      if (this._leftStickX > 0.5) {
+        // Right
+        keys[1] = "81";
+      } else if (this._leftStickX < -0.5) {
+        // Left
+        keys[0] = "71";
+      }
+
+      if (this._leftStickY > 0.5) {
+        // Up
+        keys[2] = "51";
+      } else if (this._leftStickY < -0.5) {
+        // Down
+        keys[3] = "61";
+      }
+
+      for (let i = 0; i < keys.length; i++) {
+        // Only send if key states have changed
+        if (keys[i] !== this._keystate[i]) {
+          this.state.rover.queueKey(0xCA, keys[i]);
+        }
+      }
+      this._keystate = keys;
+    }
+  }
+
+  gamepadConnectHandler(gamepadIndex) {
+    //console.log(`Gamepad ${gamepadIndex} connected !`)
+  }
+
+  gamepadDisconnectHandler(gamepadIndex) {
+    //console.log(`Gamepad ${gamepadIndex} disconnected !`)
+    if (this.state.isConnected && this.state.roverState.status === 2) {
+      this.state.rover.queueKey(0xCA, "50");
+      this.state.rover.queueKey(0xCA, "70");
+      this.state.rover.queueKey(0xCA, "60");
+      this.state.rover.queueKey(0xCA, "80");
+    }
+    this._leftStickX = 0;
+    this._leftStickY = 0;
+    this._gamepadUpdated = true;
+  }
+
+  gamepadButtonChangeHandler(buttonName, down) {
+    if (this.state.isConnected && this.state.roverState.status === 2 && down === true) {
+      let downData = "";
+      switch (buttonName) {
+        case ("RB"):
+          // Up arrow
+          downData = "11";
+          break;
+        case ("LB"):
+          // Down arrow
+          downData = "21";
+          break;
+        default:
+          // Do nothing
+          break;
+      }
+      if (downData !== "") {
+        this.state.rover.queueKey(0xCA, downData);
+      }
+    }
+  }
+
+  gamepadAxisChangeHandler(axisName, value, previousValue) {
+    if (axisName === "LeftStickX") {
+      this._leftStickX = value;
+    } else if (axisName === "LeftStickY") {
+      this._leftStickY = value;
+    }
+    this._gamepadUpdated = true;
   }
 
   render() {
@@ -581,6 +674,15 @@ class App extends React.Component {
             )}
           </Box>
         </Layer>
+        {this.state.isConnected && this.state.roverState.status === 2 && <GamepadHandler
+          onConnect={this.gamepadConnectHandler}
+          onDisconnect={this.gamepadDisconnectHandler}
+
+          onButtonChange={this.gamepadButtonChangeHandler}
+          onAxisChange={this.gamepadAxisChangeHandler}
+        >
+          <React.Fragment />
+        </GamepadHandler>}
         <Box fill="vertical" overflow="auto" align="center" flex="grow">
           <Header className="appHeader" align="end" justify="center" pad="medium" gap="medium" background={{ "color": (this.state.roverState.status && this.state.roverState.voltage !== undefined && this.state.roverState.voltage <= 13.2) ? "status-critical" : "background-contrast" }} fill="horizontal">
             <ResponsiveContext.Consumer>

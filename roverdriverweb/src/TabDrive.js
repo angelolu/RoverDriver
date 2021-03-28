@@ -76,7 +76,7 @@ class TabDrive extends React.Component {
                 {(this.props.roverState.status !== 0x02 && this.props.roverState.status && this.props.roverState.voltage !== undefined && this.props.roverState.voltage <= 13.2) && <Heading alignSelf="center" level={6} margin="none">Battery low! Can't start motor control.</Heading>}
                 {this.props.roverState.status !== 0x02 && <Button margin={{ "top": "small", "bottom": "small", "left": "none", "right": "none" }} label="Start Control" color={this.props.roverState.status ? "brand" : "status-unknown"} disabled={(this.props.roverState.status && this.props.roverState.voltage !== undefined && this.props.roverState.voltage > 13.2) ? false : true} onClick={this.handleDriveStart} icon={<Power />} primary />}
                 {this.props.roverState.status === 0x02 && <Button margin={{ "top": "small", "bottom": "small", "left": "none", "right": "none" }} label="STOP MOTORS" color="status-critical" onClick={this.handleDriveStop} icon={<Halt />} primary />}
-                <Heading alignSelf="center" level={6} margin="none">Keyboard controls {this.props.roverState.status === 0x02 ? "available" : "disabled"}</Heading>
+                <Heading alignSelf="center" level={6} margin="none">Keyboard/gamepad controls {this.props.roverState.status === 0x02 ? "available" : "disabled"}</Heading>
                 <Collapsible direction="vertical" open={this.props.roverState.status === 2}>
                     <Box align="center" justify="around" margin={{ "top": "small", "bottom": "small" }} direction="column" gap="small">
                         <Box direction="row">
@@ -157,14 +157,14 @@ class TabDrive extends React.Component {
                     {size => (
                         <Box align="center" justify="around" margin={{ "bottom": "small" }} direction="row" wrap={true}>
                             <ControllerDiagram isConnected={this.props.isConnected} roverController={this.props.roverController} />
-                            <Box align="left" justify="around" direction="column" wrap={true}>
+                            <Box align="start" justify="around" direction="column" wrap={true}>
                                 {((this.props.roverController.FR && this.props.roverController.FR.error && this.props.roverController.FR.error !== "Offline") ||
                                     (this.props.roverController.FL && this.props.roverController.FL.error && this.props.roverController.FL.error !== "Offline") ||
                                     (this.props.roverController.RR && this.props.roverController.RR.error && this.props.roverController.RR.error !== "Offline") ||
                                     (this.props.roverController.RL && this.props.roverController.RL.error && this.props.roverController.RL.error !== "Offline")
                                 ) && <>
                                         <Heading level={6} margin="xsmall">Clear halting errors:</Heading>
-                                        <Box align="left" margin={{"botton": "small"}} justify="evenly" direction="row" wrap={true}>
+                                        <Box align="start" margin={{"botton": "small"}} justify="evenly" direction="row" wrap={true}>
                                             {this.props.roverController.FR && this.props.roverController.FR.error && this.props.roverController.FR.error !== "Offline" && <Button label="Front R" onClick={(event) => this.clearControllerError(event, 0xD1)} icon={<StatusCritical />} />}
                                             {this.props.roverController.FL && this.props.roverController.FL.error && this.props.roverController.FL.error !== "Offline" && <Button label="Front L" onClick={(event) => this.clearControllerError(event, 0xD2)} icon={<StatusCritical />} />}
                                             {this.props.roverController.RR && this.props.roverController.RR.error && this.props.roverController.RR.error !== "Offline" && <Button label="Rear R" onClick={(event) => this.clearControllerError(event, 0xD3)} icon={<StatusCritical />} />}
