@@ -6,13 +6,21 @@
 #define _ROVERCONFIG_H
 
 // Uncomment ONE of these depending on targeted board
-#define BOARD_ADAFRUIT_nRF52832  // Board used to simulate rover
-// #define BOARD_ARDUINO_NANO33BLE  // Rover
+//#define BOARD_ADAFRUIT_nRF52832  // Board used to simulate rover
+#define BOARD_ARDUINO_NANO33BLE  // Rover
 
 // Uncomment to use simulated data instead of real data
-#define USE_SIMULATED_DATA
+// #define USE_SIMULATED_DATA
 
+// BLE peripheral name
+// RoverDriver will look for the "rover-" prefix
 #define PERIPHERAL_NAME "rover-0001"
+
+// Set speed of turns 0-1
+// 1 means there will be no forward motion while turning
+// (if forward and turn buttons are both held)
+// 0 means to turning
+#define TURN_SPEED 0.75
 
 #ifdef BOARD_ARDUINO_NANO33BLE
 #define PIN_LED_FORWARD 2
@@ -56,6 +64,12 @@
 #define INTERVAL_QUICK 500
 #define INTERVAL_SLOW 4800
 
+// Motor Controllers
+#define I2C_JRK_FRONT_RIGHT 12
+#define I2C_JRK_FRONT_LEFT 13
+#define I2C_JRK_REAR_RIGHT 14
+#define I2C_JRK_REAR_LEFT 15
+
 //    READ_BUFSIZE            Size of the BLE read buffer for incoming packets
 #define READ_BUFSIZE (20)
 
@@ -73,6 +87,11 @@
 
 #define TX_SPEED (0xCE)  // Motor speed
 
+#define TX_CONTROLLER_FR (0xD1)
+#define TX_CONTROLLER_FL (0xD2)
+#define TX_CONTROLLER_RR (0xD3)
+#define TX_CONTROLLER_RL (0xD4)
+
 #define RX_STOP (0xC0)  // Stop all motors. Enter 0x01 (under control) mode
 #define RX_STOP_LEN 3
 #define RX_CONTROL (0xC1)  // Enter 0x02 (motors under control) mode
@@ -81,6 +100,14 @@
 #define RX_KEY_LEN 5
 #define RX_SPEED_SET (0xCE)  // Set targeted speed ("1" - "10")
 #define RX_SPEED_SET_LEN 5
+#define RX_CONTROLLER_FR (0xD1)
+#define RX_CONTROLLER_FR_LEN 1
+#define RX_CONTROLLER_FL (0xD2)
+#define RX_CONTROLLER_FL_LEN 1
+#define RX_CONTROLLER_RR (0xD3)
+#define RX_CONTROLLER_RR_LEN 1
+#define RX_CONTROLLER_RL (0xD4)
+#define RX_CONTROLLER_RL_LEN 1
 
 typedef void (*rover_connect_callback_t)(char *conn_hdl);
 typedef void (*rover_disconnect_callback_t)(uint8_t reason);

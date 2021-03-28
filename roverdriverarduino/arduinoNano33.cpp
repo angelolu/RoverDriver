@@ -61,19 +61,19 @@ void setupBoard() {
   DEBUG_PRINTLN(F("-------------------------------------------"));
 #endif
   if (!IMU.begin()) {
-    Serial.println("Failed to initialize IMU!");
+    DEBUG_PRINTLN("Failed to initialize IMU!");
     while (1)
       ;
   }
-  Serial.print("Gyroscope sample rate = ");
-  Serial.print(IMU.gyroscopeSampleRate());
-  Serial.println(" Hz");
-  Serial.print("Accelerometer sample rate = ");
-  Serial.print(IMU.accelerationSampleRate());
-  Serial.println(" Hz");
-  Serial.print("Magnetic field sample rate = ");
-  Serial.print(IMU.magneticFieldSampleRate());
-  Serial.println(" Hz");
+  DEBUG_PRINT("Gyroscope sample rate = ");
+  DEBUG_PRINTLN(IMU.gyroscopeSampleRate());
+  DEBUG_PRINT(" Hz");
+  DEBUG_PRINTLN("Accelerometer sample rate = ");
+  DEBUG_PRINT(IMU.accelerationSampleRate());
+  DEBUG_PRINTLN(" Hz");
+  DEBUG_PRINTLN("Magnetic field sample rate = ");
+  DEBUG_PRINT(IMU.magneticFieldSampleRate());
+  DEBUG_PRINTLN(" Hz");
 }
 
 void startBluetooth() {
@@ -181,8 +181,8 @@ void disconnect_callback(BLEDevice central) {
   DEBUG_PRINT("Disconnected event, central: ");
   DEBUG_PRINTLN(central.address());
   if (mainDisconnectCallback) mainDisconnectCallback(0);
-    // Workaround for instability after disconnecting/connecting multiple times
-  NVIC_SystemReset(); // Soft reset system
+  // Workaround for instability after disconnecting/connecting multiple times
+  NVIC_SystemReset();  // Soft reset system
 }
 
 uint8_t getIncoming() {
@@ -219,6 +219,10 @@ uint8_t readPacket(uint16_t timeout) {
     if (((packetbuffer[1] == RX_STOP) && (replyidx == RX_STOP_LEN)) ||
         ((packetbuffer[1] == RX_CONTROL) && (replyidx == RX_CONTROL_LEN)) ||
         ((packetbuffer[1] == RX_KEY) && (replyidx == RX_KEY_LEN)) ||
+        ((packetbuffer[1] == RX_CONTROLLER_FR) && (replyidx == RX_CONTROLLER_FR_LEN)) ||
+        ((packetbuffer[1] == RX_CONTROLLER_FL) && (replyidx == RX_CONTROLLER_FL_LEN)) ||
+        ((packetbuffer[1] == RX_CONTROLLER_RR) && (replyidx == RX_CONTROLLER_RR_LEN)) ||
+        ((packetbuffer[1] == RX_CONTROLLER_RL) && (replyidx == RX_CONTROLLER_RL_LEN)) ||
         ((packetbuffer[1] == RX_SPEED_SET) && (replyidx == RX_SPEED_SET_LEN)))
       break;
     int bytes = rxChar.readValue(packetbuffer + replyidx, READ_BUFSIZE);

@@ -6,11 +6,13 @@
   Created in February 2021, Angelo L
 */
 #include <Arduino.h>
+#include <JrkG2.h>
+#include <Wire.h>
 
+#include "multiChannelRelay.h"
 #include "packetParser.h"
 #include "roverConfig.h"
 #include "roverdriverarduino.h"
-#include "multiChannelRelay.h"
 
 // Last transmission timers
 unsigned long _last_realtime_TX;
@@ -19,6 +21,15 @@ unsigned long _last_slow_TX;
 
 uint8_t _mode;       // Device operating mode
 uint8_t _speed = 0;  // Motor speed
+bool b_forward, b_reverse, b_left, b_right;
+int _right_target = 2048;
+int _left_target = 2048;
+
+// Motor controllers
+JrkG2I2C jrkFR(I2C_JRK_FRONT_RIGHT);
+JrkG2I2C jrkFL(I2C_JRK_FRONT_LEFT);
+JrkG2I2C jrkRR(I2C_JRK_REAR_RIGHT);
+JrkG2I2C jrkRL(I2C_JRK_REAR_LEFT);
 
 /* Buffer to hold incoming characters */
 uint8_t packetbuffer[READ_BUFSIZE + 1];
@@ -26,13 +37,16 @@ uint8_t packetbuffer[READ_BUFSIZE + 1];
 void setup() {
   setupBoard();
   DEBUG_PRINTLN(F("Board setup"));
+  // Set up I2C.
+  Wire.begin();
+
   setConnectCallback(connect_callback_main);
   setDisconnectCallback(disconnect_callback_main);
 #ifdef BOARD_ARDUINO_NANO33BLE
   // nano33ble uses callbacks for rx and not polling
   setRXCallback(handleRX);
 #endif
-DEBUG_PRINTLN(F("Callbacks set"));
+  DEBUG_PRINTLN(F("Callbacks set"));
   startBluetooth();
   DEBUG_PRINTLN(F("Bluetooth started"));
   setup_relay();
@@ -43,7 +57,6 @@ DEBUG_PRINTLN(F("Callbacks set"));
 }
 
 void loop() {
-  DEBUG_PRINT("LOOP ");
   // Wait for new data to arrive
   int8_t len = getIncoming();
   if (len != 0) {
@@ -56,6 +69,7 @@ void loop() {
     if ((millis() - _last_realtime_TX) > INTERVAL_REALTIME) {
       DEBUG_PRINT(F("REALTIME: "));
       // Get/send highest frequency data (ex. motor controller state)
+
       // Send IMU data
       uint8_t buf_imu[13];
 #ifdef USE_SIMULATED_DATA
@@ -87,16 +101,32 @@ void loop() {
       memcpy(buf_imu + 9, &z, 4);
       sendMessage(buf_imu, 13);
 #else
-
       getAccelString(buf_imu);
       sendMessage(buf_imu, 13);
-
       getGyroString(buf_imu);
       sendMessage(buf_imu, 13);
-
       getFieldString(buf_imu);
       sendMessage(buf_imu, 13);
 #endif
+
+      // Send JRK Statuses
+      uint8_t buf_jrk[15];
+      buf_jrk[0] = TX_CONTROLLER_FR;
+      getJRKStatus(buf_jrk + 1, jrkFR);
+      sendMessage(buf_jrk, 15);
+
+      buf_jrk[0] = TX_CONTROLLER_FL;
+      getJRKStatus(buf_jrk + 1, jrkFL);
+      sendMessage(buf_jrk, 15);
+
+      buf_jrk[0] = TX_CONTROLLER_RR;
+      getJRKStatus(buf_jrk + 1, jrkRR);
+      sendMessage(buf_jrk, 15);
+
+      buf_jrk[0] = TX_CONTROLLER_RL;
+      getJRKStatus(buf_jrk + 1, jrkRL);
+      sendMessage(buf_jrk, 15);
+
       _last_realtime_TX = millis();
       DEBUG_PRINTLN(F("OK"));
     }
@@ -115,6 +145,7 @@ void loop() {
       sendMessage(buf_speed, 2);
       DEBUG_PRINTLN(F("OK"));
     }
+
     if ((millis() - _last_slow_TX) > INTERVAL_SLOW) {
       DEBUG_PRINT(F("SLOW: "));
       // Get/send lowest frequency data (ex. device voltage)
@@ -153,7 +184,62 @@ void loop() {
       DEBUG_PRINTLN(F("OK"));
     }
   }
-  DEBUG_PRINTLN(" OK");
+
+  if (_mode == MODE_CONTROLLED) {
+    jrkFR.setTarget(_right_target);
+    jrkRR.setTarget(_right_target);
+    jrkFL.setTarget(_left_target);
+    jrkRL.setTarget(_left_target);
+  }
+}
+
+void getJRKStatus(uint8_t* buf, JrkG2I2C jrk) {
+  uint16_t returned;
+  jrk.getVariables(0x12, 2, buf + 1);  // Error Halting
+  returned = jrk.getVinVoltage();
+  memcpy(buf + 3, &returned, 2);
+  returned = jrk.getCurrent();
+  memcpy(buf + 5, &returned, 2);
+  returned = jrk.getDutyCycleTarget();
+  memcpy(buf + 7, &returned, 2);
+  returned = jrk.getDutyCycle();
+  memcpy(buf + 9, &returned, 2);
+  returned = jrk.getFeedback();
+  memcpy(buf + 11, &returned, 2);
+  jrk.getVariables(0x1F, 1, buf + 13);
+  int8_t status = jrk.getLastError();
+  if (status == 0) {
+    status = 1;
+  } else {
+    status = -1;
+  }
+  memcpy(buf, &status, 1);
+}
+
+void calculateMotorTargets() {
+  float rMotorTarget = 0.0;
+  if (b_forward) rMotorTarget = rMotorTarget + 1.0;
+  if (b_reverse) rMotorTarget = rMotorTarget - 1.0;
+  if (b_left) rMotorTarget = rMotorTarget + TURN_SPEED;
+  if (b_right) rMotorTarget = rMotorTarget - TURN_SPEED;
+  rMotorTarget = constrain(rMotorTarget, -1, 1);
+  rMotorTarget = rMotorTarget * _speed;
+  // map -10 to 10 to 0, 4095
+  rMotorTarget =
+      (rMotorTarget - (-10)) * ((2648) - (1448)) / ((10) - (-10)) + 1448;
+  _right_target = round(rMotorTarget);
+
+  float lMotorTarget = 0.0;
+  if (b_forward) lMotorTarget = lMotorTarget + 1.0;
+  if (b_reverse) lMotorTarget = lMotorTarget - 1.0;
+  if (b_left) lMotorTarget = lMotorTarget - TURN_SPEED;
+  if (b_right) lMotorTarget = lMotorTarget + TURN_SPEED;
+  lMotorTarget = constrain(lMotorTarget, -1, 1);
+  lMotorTarget = lMotorTarget * _speed;
+  // map -10 to 10 to 0, 4095
+  lMotorTarget =
+      (lMotorTarget - (-10)) * ((2648) - (1448)) / ((10) - (-10)) + 1448;
+  _left_target = round(lMotorTarget);
 }
 
 void handleRX(uint8_t len) {
@@ -199,18 +285,22 @@ void handleRX(uint8_t len) {
             }
             case KEY_FORWARD: {
               digitalWrite(PIN_LED_FORWARD, HIGH);
+              b_forward = true;
               break;
             }
             case KEY_REVERSE: {
               digitalWrite(PIN_LED_BACK, HIGH);
+              b_reverse = true;
               break;
             }
             case KEY_LEFT: {
               digitalWrite(PIN_LED_LEFT, HIGH);
+              b_left = true;
               break;
             }
             case KEY_RIGHT: {
               digitalWrite(PIN_LED_RIGHT, HIGH);
+              b_right = true;
               break;
             }
           }
@@ -218,22 +308,27 @@ void handleRX(uint8_t len) {
           switch (buttnum) {
             case KEY_FORWARD: {
               digitalWrite(PIN_LED_FORWARD, LOW);
+              b_forward = false;
               break;
             }
             case KEY_REVERSE: {
               digitalWrite(PIN_LED_BACK, LOW);
+              b_reverse = false;
               break;
             }
             case KEY_LEFT: {
               digitalWrite(PIN_LED_LEFT, LOW);
+              b_left = false;
               break;
             }
             case KEY_RIGHT: {
               digitalWrite(PIN_LED_RIGHT, LOW);
+              b_right = false;
               break;
             }
           }
         }
+        calculateMotorTargets();
       }
       break;
     }
@@ -245,6 +340,22 @@ void handleRX(uint8_t len) {
         sendMessage(buf_speed, 2);
         break;
       }
+    }
+    case RX_CONTROLLER_FR: {
+      jrkFR.getErrorFlagsHalting();
+      break;
+    }
+    case RX_CONTROLLER_FL: {
+      jrkFL.getErrorFlagsHalting();
+      break;
+    }
+    case RX_CONTROLLER_RR: {
+      jrkRR.getErrorFlagsHalting();
+      break;
+    }
+    case RX_CONTROLLER_RL: {
+      jrkRL.getErrorFlagsHalting();
+      break;
     }
     default:
       DEBUG_PRINTLN(F("Can't match message"));
@@ -276,11 +387,22 @@ void setMode(uint8_t mode) {
     }
   }
   relay_setMode(mode);
+
+  // Stop all motors if entering a non-controlled mode
+  if (mode != MODE_CONTROLLED) {
+    jrkFR.stopMotor();
+    jrkFL.stopMotor();
+    jrkRR.stopMotor();
+    jrkRL.stopMotor();
+    _right_target = 2048;
+    _left_target = 2048;
+  }
+
   _mode = mode;
   DEBUG_PRINTLN(F(" OK"));
 }
 
-void connect_callback_main(char *central_name) {
+void connect_callback_main(char* central_name) {
   DEBUG_PRINT(F("Connected to "));
   DEBUG_PRINTLN(central_name);
 

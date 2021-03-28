@@ -6,7 +6,6 @@
 int channel_state;  // Value to save channel state
 
 void setup_relay() {
-  Wire.begin();
   channel_state = 0;
 }
 
