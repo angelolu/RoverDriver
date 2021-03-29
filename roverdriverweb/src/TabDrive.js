@@ -21,7 +21,6 @@ class TabDrive extends React.Component {
         this.handleDriveStart = this.handleDriveStart.bind(this);
         this.handleDriveStop = this.handleDriveStop.bind(this);
         this.handleSpeedChange = this.handleSpeedChange.bind(this);
-        this.clearControllerError = this.clearControllerError.bind(this);
     }
 
     componentDidMount() {

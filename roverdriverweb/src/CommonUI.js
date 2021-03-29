@@ -1,3 +1,4 @@
+import React from 'react'
 import { Box, DataChart, Text, Heading, CardFooter, Card, CardHeader, CardBody, Button } from 'grommet'
 import { FormClose, StatusInfo } from 'grommet-icons'
 

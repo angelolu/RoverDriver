@@ -58,8 +58,6 @@ class App extends React.Component {
     this.handleDisconnectClick = this.handleDisconnectClick.bind(this);
     this.handleSimulate = this.handleSimulate.bind(this);
     this.handleNotificationDismiss = this.handleNotificationDismiss.bind(this);
-    this.handleKeyDown = this.handleKeyDown.bind(this);
-    this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handlePreferenceUpdate = this.handlePreferenceUpdate.bind(this);
     this.startLogging = this.startLogging.bind(this);
     this.stopLogging = this.stopLogging.bind(this);
@@ -94,7 +92,7 @@ class App extends React.Component {
 
     document.removeEventListener(visibilityChange, this.handleVisibilityChange);
     document.removeEventListener("keydown", this.handleKeyDown);
-    document.removeEventListener("keyup", () => this.handleKeyUp);
+    document.removeEventListener("keyup", this.handleKeyUp);
   }
 
   async acquireWakeLock(forceReaquire = false) {
@@ -383,7 +381,7 @@ class App extends React.Component {
     status.dutyCycleTarget = data.getInt16(8, true);
     status.dutyCycle = data.getInt16(10, true);
     status.feedback = data.getUint16(12, true);
-    status.online = data.getInt8(1, true);
+    status.online = data.getInt8(1);
 
     // If device is offline, that is the only error
     if (status.online === -1) {

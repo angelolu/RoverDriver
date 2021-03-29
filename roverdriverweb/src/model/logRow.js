@@ -2,7 +2,7 @@ export class LogRow {
     timestamp;
     data;
 
-    constructor(tableName, date) {
+    constructor(timestamp, data) {
         this.timestamp = timestamp == null ? "" : timestamp;
         this.data = data == null ? "" : data;
     }
