@@ -290,6 +290,12 @@ class App extends React.Component {
       if (targets.accel && this._roverIMU && this._roverIMU.accel) snapshot.data.accelerometer = this._roverIMU.accel[this._roverIMU.accel.length - 1];
       if (targets.gyro && this._roverIMU && this._roverIMU.gyro) snapshot.data.gyroscope = this._roverIMU.gyro[this._roverIMU.gyro.length - 1];
       if (targets.magnet && this._roverIMU && this._roverIMU.field) snapshot.data.magnetometer = this._roverIMU.field[this._roverIMU.field.length - 1];
+      if (targets.motor) {
+        if (this._motorControllerFR) snapshot.data.motorControllerFR = this._motorControllerFR;
+        if (this._motorControllerFL) snapshot.data.motorControllerFL = this._motorControllerFL;
+        if (this._motorControllerRR) snapshot.data.motorControllerRR = this._motorControllerRR;
+        if (this._motorControllerRL) snapshot.data.motorControllerRL = this._motorControllerRL;
+      }
       if (targets.stats && this.state.roverState && this.state.roverState.voltage) snapshot.data.voltage = this.state.roverState.voltage;
       this.LogFileService.addLogRow(snapshot)
         .catch(exception => {

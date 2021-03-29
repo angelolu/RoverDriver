@@ -98,6 +98,33 @@ export class LogList extends React.Component {
         }
     }
 
+    generateMotorLog = (jrkData, prefix) => {
+        var logRow = {};
+        if (jrkData.current) {
+            logRow[prefix + "_current"] = jrkData.current;
+        } else {
+            logRow[prefix + "_current"] = 0;
+        }
+
+        if (jrkData.dutyCycleTarget) {
+            logRow[prefix + "_dutyCycleTarget"] = jrkData.dutyCycleTarget;
+        } else {
+            logRow[prefix + "_dutyCycleTarget"] = 0;
+        }
+        if (jrkData.dutyCycle) {
+            logRow[prefix + "_dutyCycle"] = jrkData.dutyCycle;
+        } else {
+            logRow[prefix + "_dutyCycle"] = 0;
+        }
+
+        if (jrkData.feedback) {
+            logRow[prefix + "_feedback"] = jrkData.feedback;
+        } else {
+            logRow[prefix + "_feedback"] = 0;
+        }
+        return logRow;
+    }
+
     async export(logfileName, date) {
         try {
             const logFile = new LogFileService(logfileName);
@@ -129,7 +156,22 @@ export class LogList extends React.Component {
                             lineItem.magnetometer_z = contents[i].data.magnetometer.Z;
                             delete lineItem.magnetometer;
                         }
-
+                        if (contents[i].data.motorControllerFR) {
+                            lineItem = { ...lineItem, ...this.generateMotorLog(contents[i].data.motorControllerFR, "FR") };
+                            delete lineItem.motorControllerFR;
+                        }
+                        if (contents[i].data.motorControllerFL) {
+                            lineItem = { ...lineItem, ...this.generateMotorLog(contents[i].data.motorControllerFL, "FL") };
+                            delete lineItem.motorControllerFL;
+                        }
+                        if (contents[i].data.motorControllerRR) {
+                            lineItem = { ...lineItem, ...this.generateMotorLog(contents[i].data.motorControllerRR, "RR") };
+                            delete lineItem.motorControllerRR;
+                        }
+                        if (contents[i].data.motorControllerRL) {
+                            lineItem = { ...lineItem, ...this.generateMotorLog(contents[i].data.motorControllerRL, "RL") };
+                            delete lineItem.motorControllerRL;
+                        }
                         flattenedContents.push(lineItem);
                     }
                     const csv = new ObjectsToCsv(flattenedContents);
