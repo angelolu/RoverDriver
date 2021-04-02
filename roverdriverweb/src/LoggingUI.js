@@ -14,7 +14,8 @@ export class LogList extends React.Component {
         this.state = {
             isEditing: false,
             editLogFileId: 0,
-            logfile: []
+            logfile: [],
+            toDelete: ""
         }
     }
 
@@ -83,18 +84,24 @@ export class LogList extends React.Component {
 
     async delete(logfileId, logfileName) {
         // delete logfile from indexeddb
-
-        try {
-            const rowsDeleted = await this.service.removeLogFile(logfileName);
-            if (rowsDeleted > 0) {
-                const index = this.state.logfile.findIndex(value => value.id === logfileId);
-                this.state.logfile.splice(index, 1);
-                this.setState({ logfile: this.state.logfile });
+        if (this.state.toDelete === logfileId) {
+            // This is the second time the delete button was pressed. Delete log.
+            try {
+                const rowsDeleted = await this.service.removeLogFile(logfileName);
+                if (rowsDeleted > 0) {
+                    // If deletion is successful, remove the file from the local state
+                    const index = this.state.logfile.findIndex(value => value.id === logfileId);
+                    this.state.logfile.splice(index, 1);
+                    this.setState({ ...this.state, logfile: this.state.logfile, toDelete: "" });
+                }
             }
-        }
-        catch (ex) {
-            alert(ex.message);
-            console.error(ex);
+            catch (ex) {
+                alert(ex.message);
+                console.error(ex);
+            }
+        } else {
+            // This is the first time the delete button was pressed. Confirm deletion.
+            this.setState({ ...this.state, toDelete: logfileId });
         }
     }
 
@@ -216,7 +223,7 @@ export class LogList extends React.Component {
                         {(ls.get('logTableName') || false) && <TableCell>{logfile.tableName}</TableCell>}
                         <TableCell>{logfile.date.toLocaleString()}</TableCell>
                         <TableCell>
-                            <TableButton label="" itemID={logfile.id} supplementary={logfile.tableName} onTap={this.delete.bind(this)} icon={<Trash />} />
+                            <TableButton label="" itemID={logfile.id} supplementary={logfile.tableName} onTap={this.delete.bind(this)} icon={<Trash color={this.state.toDelete === logfile.id && "status-critical"} />} />
                         </TableCell>
                         <TableCell>
                             <TableButton label="" itemID={logfile.tableName} supplementary={logfile.date} onTap={this.export.bind(this)} icon={<Download />} />
@@ -226,6 +233,7 @@ export class LogList extends React.Component {
             });
             return (
                 <Box>
+                    {this.state.toDelete !== "" && <Text margin={{ "top": "small", "bottom": "small" }}>To delete the log, tap the trash icon again</Text>}
                     <Table>
                         <TableHeader>
                             <TableRow>
