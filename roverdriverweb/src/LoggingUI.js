@@ -5,6 +5,7 @@ import { LogIndexService } from "./storage_service/logindex_service";
 import { LogFileService } from "./storage_service/logfile_service";
 import ls from 'local-storage'
 import ObjectsToCsv from 'objects-to-csv'
+import { fileSave } from 'browser-fs-access'
 
 export class LogList extends React.Component {
 
@@ -193,20 +194,16 @@ export class LogList extends React.Component {
     }
 
     /*
-        For moden browsers, the following function should start a
-        download of a file containing the text passed in
+        Use browser-fs-access to save or download the file
     */
-    downloadFile(filename, text) {
-        var element = document.createElement('a');
-        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
-        element.setAttribute('download', filename);
-
-        element.style.display = 'none';
-        document.body.appendChild(element);
-
-        element.click();
-
-        document.body.removeChild(element);
+    async downloadFile(filename, text) {
+        const csvFile = new File([text], filename, {
+            type: "text/csv"
+        });
+        await fileSave(csvFile, {
+            fileName: "poopoo",
+            extensions: ['.csv']
+        });
     }
 
     render() {
