@@ -216,6 +216,9 @@ void getJRKStatus(uint8_t* buf, JrkG2I2C jrk) {
   memcpy(buf, &status, 1);
 }
 
+const int kOutLow = 1568;
+const int kOutHigh = 2528;
+
 void calculateMotorTargets() {
   float rMotorTarget = 0.0;
   if (b_forward) rMotorTarget = rMotorTarget + 1.0;
@@ -226,7 +229,8 @@ void calculateMotorTargets() {
   rMotorTarget = rMotorTarget * _speed;
   // map -10 to 10 to 0, 4095
   rMotorTarget =
-      (rMotorTarget - (-10)) * ((2648) - (1448)) / ((10) - (-10)) + 1448;
+      (rMotorTarget - (-10.0)) * ((kOutHigh) - (kOutLow)) / ((10.0) - (-10.0)) +
+      kOutLow;
   _right_target = round(rMotorTarget);
 
   float lMotorTarget = 0.0;
@@ -238,7 +242,8 @@ void calculateMotorTargets() {
   lMotorTarget = lMotorTarget * _speed;
   // map -10 to 10 to 0, 4095
   lMotorTarget =
-      (lMotorTarget - (-10)) * ((2648) - (1448)) / ((10) - (-10)) + 1448;
+      (lMotorTarget - (-10.0)) * ((kOutHigh) - (kOutLow)) / ((10.0) - (-10.0)) +
+      kOutLow;
   _left_target = round(lMotorTarget);
 }
 
@@ -366,6 +371,12 @@ void handleRX(uint8_t len) {
 void setMode(uint8_t mode) {
   DEBUG_PRINT(F("Setting mode "));
   DEBUG_PRINT(mode);
+
+  // Don't go into MODE_CONTROLLED if the system voltage is less than 13.2 V
+  if (mode == MODE_CONTROLLED &&
+      (map(analogRead(PIN_A_VOLTAGE), 0, 4095, 0, 1853)) / 100.0 < 13.2)
+    return;
+
   switch (mode) {
     case MODE_IDLE: {
       digitalWrite(PIN_LED_MODE_0, HIGH);

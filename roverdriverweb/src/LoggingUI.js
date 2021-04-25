@@ -201,7 +201,7 @@ export class LogList extends React.Component {
             type: "text/csv"
         });
         await fileSave(csvFile, {
-            fileName: "poopoo",
+            fileName: filename,
             extensions: ['.csv']
         });
     }

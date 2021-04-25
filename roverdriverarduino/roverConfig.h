@@ -60,15 +60,15 @@
 #define SERIAL_BAUD_CONSOLE 115200
 
 // Rover to controller update intervals in milliseconds
-#define INTERVAL_REALTIME 100
+#define INTERVAL_REALTIME 95
 #define INTERVAL_QUICK 500
 #define INTERVAL_SLOW 4800
 
 // Motor Controllers
-#define I2C_JRK_FRONT_RIGHT 12
-#define I2C_JRK_FRONT_LEFT 13
-#define I2C_JRK_REAR_RIGHT 14
-#define I2C_JRK_REAR_LEFT 15
+#define I2C_JRK_FRONT_RIGHT 15
+#define I2C_JRK_FRONT_LEFT 14
+#define I2C_JRK_REAR_RIGHT 13
+#define I2C_JRK_REAR_LEFT 12
 
 //    READ_BUFSIZE            Size of the BLE read buffer for incoming packets
 #define READ_BUFSIZE (20)
