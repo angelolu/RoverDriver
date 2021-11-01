@@ -136,6 +136,7 @@ class TabSettings extends React.Component {
                 <Text margin={{ 'bottom': 'small' }}>App built by Team 07 - MECH 462 at Queen's University for the Canadian Space Agency</Text>
                 <Text>Build time: BUILD_DATE</Text>
                 <Text>Build hash: BUILD_HASH</Text>
+                <Text>Hello World</Text>
             </StyledCard>
         </Box>;
     }
