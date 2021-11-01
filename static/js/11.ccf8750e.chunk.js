@@ -1,0 +1,3 @@
+/*! For license information please see 11.ccf8750e.chunk.js.LICENSE.txt */
+(this.webpackJsonproverdriverweb=this.webpackJsonproverdriverweb||[]).push([[11],{246:function(e,t,r){"use strict";r.r(t);var n=r(8),c=r(15);t.default=function(){var e=Object(c.a)(n.mark((function e(t){var r,c,i=arguments;return n.wrap((function(e){for(;;)switch(e.prev=e.next){case 0:r=i.length>1&&void 0!==i[1]?i[1]:{},(c=document.createElement("a")).download=r.fileName||"Untitled",c.href=URL.createObjectURL(t),c.addEventListener("click",(function(){setTimeout((function(){return URL.revokeObjectURL(c.href)}),3e4)})),c.click();case 3:case"end":return e.stop()}}),e)})));return function(t){return e.apply(this,arguments)}}()}}]);
+//# sourceMappingURL=11.ccf8750e.chunk.js.map

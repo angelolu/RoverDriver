@@ -1,0 +1,45 @@
+{
+  "short_name": "Rover Driver",
+  "name": "Rover Driver",
+  "description": "Control the PEEKbot rover prototype wirelessly, view and log sensor data in real-time. Works offline and requires Bluetooth.",
+  "icons": [
+    {
+      "src": "android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot1.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "screenshot2.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "screenshot3.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "screenshot4.jpg",
+      "sizes": "1080x1920",
+      "type": "image/jpeg"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#FFB63A",
+  "background_color": "#212429",
+  "orientation": "any",
+  "lang": "en"
+}
